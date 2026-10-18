@@ -225,8 +225,11 @@ $appUrl = Config::get('APP_URL');
               foreach ($layout['recentNotifs'] as $n):
                 $dotClass = $dotClasses[$n['tone']] ?? 'dot-gray';
               ?>
-              <div class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>" data-id="<?= $n['id'] ?>"
-                   onclick="clickNotif(<?= $n['id'] ?>, '<?= addslashes($n['page']) ?>', '<?= addslashes($n['focus_data'] ?? '') ?>')">
+              <div class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>"
+                   data-id="<?= (int)$n['id'] ?>"
+                   data-page="<?= htmlspecialchars($n['page'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                   data-focus="<?= htmlspecialchars($n['focus_data'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                   onclick="handleNotifClick(this)">
                 <i class="notif-dot <?= $dotClass ?>"></i>
                 <div class="notif-body">
                   <p class="notif-title"><?= htmlspecialchars($n['title']) ?></p>

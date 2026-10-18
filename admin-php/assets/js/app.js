@@ -50,17 +50,32 @@ async function markAllRead() {
 }
 
 // ── Click notification ────────────────────────────── //
+function handleNotifClick(el) {
+  if (!el) return;
+  const id = el.dataset.id;
+  const page = el.dataset.page || '';
+  const focusJson = el.dataset.focus || '';
+  clickNotif(id, page, focusJson);
+}
+
 async function clickNotif(id, page, focusJson) {
-  await fetch(`api/notifications.php?action=mark_read&id=${id}`, {
-    method: 'POST',
-    headers: { 'X-CSRF-TOKEN': getCsrfToken() }
-  });
+  try {
+    if (id) {
+      await fetch(`api/notifications.php?action=mark_read&id=${encodeURIComponent(id)}`, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+      });
+    }
+  } catch (err) {
+    console.error('Failed to mark notification as read:', err);
+  }
   const pageMap = {
     'Dashboard':   'index.php',
     'Master Grid': 'mastergrid.php',
     'Waitlist':    'waitlist.php',
     'Events':      'events.php',
     'Users':       'members.php',
+    'Members':     'members.php',
     'Payments':    'payments.php',
     'Reports':     'reports.php',
     'Settings':    'settings.php',
@@ -68,7 +83,7 @@ async function clickNotif(id, page, focusJson) {
   let url = pageMap[page] || 'index.php';
   if (focusJson) {
     try {
-      const focus = JSON.parse(focusJson);
+      const focus = typeof focusJson === 'string' ? JSON.parse(focusJson) : focusJson;
       const params = new URLSearchParams(focus).toString();
       if (params) url += '?' + params;
     } catch(e) {}
