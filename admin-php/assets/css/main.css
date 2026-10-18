@@ -394,6 +394,7 @@ h2 { font-size: 1rem; font-weight: 700; }
 .grid-date-nav .btn {
   height: 32px; padding: 0 10px; border: none;
   font-size: .8rem; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
 }
 .grid-date-nav .btn:hover { background: #f3f4f6; }
 
@@ -420,11 +421,29 @@ h2 { font-size: 1rem; font-weight: 700; }
   background: #fff; font-size: .875rem; outline: none;
   transition: border-color .15s, box-shadow .15s;
   font-family: inherit;
+  box-sizing: border-box;
 }
 textarea.input { height: auto; padding: 10px 12px; resize: vertical; }
 .input:focus, .select-field:focus, textarea.input:focus {
   border-color: var(--forest);
   box-shadow: 0 0 0 3px rgba(30,86,49,.12);
+}
+select.input,
+select.select-field,
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 12px) center;
+  background-size: 14px 14px;
+  padding-right: 36px !important;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.filter-select-wrap select {
+  background-image: none !important;
 }
 .field-label { font-size: .875rem; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
 .field-hint  { font-size: .75rem; color: #9ca3af; margin-top: 4px; display: block; }

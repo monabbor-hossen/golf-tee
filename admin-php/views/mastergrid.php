@@ -18,11 +18,27 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
   </div>
   <div class="page-header-actions">
     <div class="grid-date-nav">
-      <a href="mastergrid.php?offset=<?= $offset - 1 ?>" class="btn btn-ghost btn-sm">‹ Prev</a>
+      <a href="mastergrid.php?offset=<?= $offset - 1 ?>" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:4px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Prev
+      </a>
       <a href="mastergrid.php?offset=0" class="btn btn-ghost btn-sm" style="<?= $offset === 0 ? 'color:var(--forest);font-weight:700;' : ''; ?>">Today</a>
-      <a href="mastergrid.php?offset=<?= $offset + 1 ?>" class="btn btn-ghost btn-sm">Next ›</a>
+      <a href="mastergrid.php?offset=<?= $offset + 1 ?>" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:4px">
+        Next
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </a>
     </div>
-    <button class="btn btn-primary" onclick="showModal('quickBookModal')">+ New Booking</button>
+    <button class="btn btn-primary" onclick="showModal('quickBookModal')" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      New Booking
+    </button>
   </div>
 </div>
 

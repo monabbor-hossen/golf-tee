@@ -14,8 +14,21 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
     <p>Transaction ledger and revenue overview</p>
   </div>
   <div class="page-header-actions">
-    <button class="btn btn-secondary" onclick="exportCSV()">⬇ Export</button>
-    <button class="btn btn-primary" onclick="showModal('recordPayModal')">+ Record payment</button>
+    <button class="btn btn-secondary" onclick="exportCSV()" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export
+    </button>
+    <button class="btn btn-primary" onclick="showModal('recordPayModal')" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Record payment
+    </button>
   </div>
 </div>
 
@@ -60,12 +73,19 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
     <button class="<?= $status === $s ? 'active' : '' ?>" onclick="window.location.href=buildUrl({status:'<?= $s ?>'})"> <?= $s ?></button>
     <?php endforeach; ?>
   </div>
-  <select class="input select-field" style="width:auto" onchange="window.location.href=buildUrl({type:this.value})">
-    <option <?= $type === 'All' ? 'selected' : '' ?>>All types</option>
-    <?php foreach ($types as $t): ?>
-    <option value="<?= $t ?>" <?= $type === $t ? 'selected' : '' ?>><?= $t ?></option>
-    <?php endforeach; ?>
-  </select>
+  <div class="filter-select-wrap">
+    <select class="input select-field" style="width:auto;height:38px;padding-left:14px;padding-right:34px" onchange="window.location.href=buildUrl({type:this.value})">
+      <option <?= $type === 'All' ? 'selected' : '' ?>>All types</option>
+      <?php foreach ($types as $t): ?>
+      <option value="<?= $t ?>" <?= $type === $t ? 'selected' : '' ?>><?= $t ?></option>
+      <?php endforeach; ?>
+    </select>
+    <span class="select-icon-right">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </span>
+  </div>
 </div>
 
 <div class="panel-layout">

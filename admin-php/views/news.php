@@ -15,7 +15,13 @@ $categoryPills = [
     <p><?= $total ?> announcements · <?= $publishedCount ?> published to members</p>
   </div>
   <div class="page-header-actions">
-    <button class="btn btn-primary" onclick="openCreateNewsModal()">+ Publish News</button>
+    <button class="btn btn-primary" onclick="openCreateNewsModal()" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Publish News
+    </button>
   </div>
 </div>
 
@@ -109,8 +115,11 @@ $categoryPills = [
                         onclick="openEditNewsModal(<?= htmlspecialchars(json_encode($art, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)">
                   Edit
                 </button>
-                <a href="news.php?category=<?= urlencode($category) ?>&id=<?= $art['id'] ?>" class="btn btn-secondary btn-sm" style="font-size:.75rem">
-                  Preview ›
+                <a href="news.php?category=<?= urlencode($category) ?>&id=<?= $art['id'] ?>" class="btn btn-secondary btn-sm" style="font-size:.75rem;display:inline-flex;align-items:center;gap:4px">
+                  Preview
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </a>
               </div>
             </div>

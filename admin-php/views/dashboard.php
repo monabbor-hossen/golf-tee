@@ -34,7 +34,13 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
   </div>
   <div class="page-header-actions">
     <a href="mastergrid.php" class="btn btn-secondary">Open Master Grid</a>
-    <button class="btn btn-primary" onclick="showModal('newBookingModal')">+ New Booking</button>
+    <button class="btn btn-primary" onclick="showModal('newBookingModal')" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      New Booking
+    </button>
   </div>
 </div>
 
@@ -184,12 +190,16 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
         </p>
       <?php else: ?>
       <?php foreach (array_slice($attentions, 0, 4) as [$tone, $title, $desc, $url]): ?>
-        <a href="<?= $url ?>" class="attention-item attention-<?= $tone ?>" style="display:flex;text-decoration:none;margin-bottom:6px">
+        <a href="<?= $url ?>" class="attention-item attention-<?= $tone ?>" style="display:flex;align-items:center;text-decoration:none;margin-bottom:6px">
           <div style="min-width:0;flex:1">
             <p class="attention-title"><?= htmlspecialchars($title) ?></p>
             <p class="attention-desc"><?= htmlspecialchars($desc) ?></p>
           </div>
-          <span>›</span>
+          <span style="display:inline-flex;align-items:center;color:#9ca3af;margin-left:8px;flex-shrink:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </span>
         </a>
       <?php endforeach; ?>
       <?php endif; ?>
