@@ -31,10 +31,7 @@ $appUrl = Config::get('APP_URL');
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <span class="logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 22V2"/>
-          <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
-        </svg>
+        <img src="<?= htmlspecialchars($appUrl) ?>/assets/img/logo.svg" alt="<?= htmlspecialchars($courseName) ?>" width="38" height="38" style="display:block;width:100%;height:100%;object-fit:contain"/>
       </span>
       <div class="logo-text">
         <strong><?= htmlspecialchars($courseName) ?></strong>
@@ -113,10 +110,7 @@ $appUrl = Config::get('APP_URL');
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)">
       <div class="sidebar-logo" style="margin:0">
         <span class="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 22V2"/>
-            <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
-          </svg>
+          <img src="<?= htmlspecialchars($appUrl) ?>/assets/img/logo.svg" alt="<?= htmlspecialchars($courseName) ?>" width="38" height="38" style="display:block;width:100%;height:100%;object-fit:contain"/>
         </span>
         <div class="logo-text">
           <strong><?= htmlspecialchars($courseName) ?></strong>

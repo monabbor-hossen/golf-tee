@@ -1,53 +1,67 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0e2a18"/>
+    <!-- Background Gradient -->
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a2312"/>
+      <stop offset="50%" stop-color="#144322"/>
       <stop offset="100%" stop-color="#1e5631"/>
     </linearGradient>
-    <radialGradient id="ballGrad" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="65%" stop-color="#f0f2f5"/>
-      <stop offset="100%" stop-color="#cfd5dc"/>
-    </radialGradient>
-    <linearGradient id="teeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffd768"/>
-      <stop offset="100%" stop-color="#c89222"/>
+
+    <!-- Golden Tee Metallic Gradient -->
+    <linearGradient id="favTee" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe699"/>
+      <stop offset="45%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+
+    <!-- Ball 3D Shading -->
+    <radialGradient id="favBall" cx="32%" cy="28%" r="68%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="65%" stop-color="#f1f5f9"/>
+      <stop offset="90%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </radialGradient>
+
+    <!-- Dynamic Swing Arc -->
+    <linearGradient id="favArc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#4ade80" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Drop Shadow -->
+    <filter id="favShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.4"/>
     </filter>
   </defs>
 
-  <!-- Background rounded squircle -->
-  <rect width="64" height="64" rx="16" fill="url(#bgGrad)"/>
-  
-  <!-- Subtle course green arc -->
-  <ellipse cx="32" cy="56" rx="22" ry="7" fill="#143d22" opacity="0.7"/>
+  <!-- Squircle Emblem Background -->
+  <rect width="64" height="64" rx="16" fill="url(#favBg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" stroke="rgba(255,255,255,0.14)" stroke-width="1.5"/>
+
+  <!-- Fairway Green Base Arc -->
+  <ellipse cx="32" cy="55" rx="20" ry="6" fill="#0d2e18" opacity="0.8"/>
+
+  <!-- Dynamic Swing Flight Arc -->
+  <path d="M 12 40 C 14 18, 50 16, 52 34" stroke="url(#favArc)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="51.5" cy="33.5" r="1.8" fill="#fbbf24"/>
 
   <!-- Golf Tee -->
-  <g filter="url(#shadow)">
-    <!-- Tee body: top cup curving into narrow peg -->
-    <path d="M 23 37 Q 32 40 41 37 L 35 44 L 34 53 Q 34 55 32 56 Q 30 55 30 53 L 29 44 Z" fill="url(#teeGrad)"/>
-    <ellipse cx="32" cy="37" rx="9" ry="2.5" fill="#ffe699"/>
+  <g filter="url(#favShadow)">
+    <path d="M 23 37 Q 32 40 41 37 L 35 44 L 34 52 Q 34 54.5 32 55.5 Q 30 54.5 30 52 L 29 44 Z" fill="url(#favTee)"/>
+    <ellipse cx="32" cy="37" rx="9" ry="2.2" fill="#fef08a"/>
   </g>
 
-  <!-- Golf Ball -->
-  <g filter="url(#shadow)">
-    <circle cx="32" cy="23" r="14" fill="url(#ballGrad)"/>
-    
-    <!-- Dimples pattern -->
-    <circle cx="27" cy="18" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="32" cy="16" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="37" cy="19" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="31" cy="22" r="1.4" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="26" cy="23" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="36" cy="25" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="30" cy="28" r="1.3" fill="#94a3b8" opacity="0.45"/>
-    <circle cx="24" cy="28" r="1.1" fill="#94a3b8" opacity="0.35"/>
-    <circle cx="38" cy="29" r="1.1" fill="#94a3b8" opacity="0.35"/>
-    <circle cx="34" cy="32" r="1.1" fill="#94a3b8" opacity="0.35"/>
-
-    <!-- Specular light glint -->
-    <ellipse cx="26" cy="16" rx="3.5" ry="1.8" fill="#ffffff" opacity="0.85" transform="rotate(-30 26 16)"/>
+  <!-- Golf Ball sitting on the tee -->
+  <g filter="url(#favShadow)">
+    <circle cx="32" cy="23" r="13.5" fill="url(#favBall)"/>
+    <circle cx="27" cy="18" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="32" cy="16" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="37" cy="19" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="31" cy="22" r="1.4" fill="#64748b" opacity="0.4"/>
+    <circle cx="26" cy="23" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="36" cy="24" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="30" cy="27" r="1.3" fill="#64748b" opacity="0.4"/>
+    <circle cx="27" cy="16.5" r="2.2" fill="#ffffff" opacity="0.9"/>
   </g>
 </svg>

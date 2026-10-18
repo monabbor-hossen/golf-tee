@@ -22,9 +22,10 @@ $appUrl = Config::get('APP_URL');
            background: linear-gradient(135deg,#0f2418 0%,#1e5631 100%); }
     .login-card { background:#fff; border-radius:24px; padding:40px; width:100%;
                   max-width:420px; box-shadow:0 24px 64px rgba(0,0,0,.25); }
-    .login-logo { display:flex; align-items:center; gap:10px; margin-bottom:28px; }
-    .login-logo-icon { width:44px;height:44px; background:var(--forest); border-radius:14px;
-                       display:flex;align-items:center;justify-content:center;font-size:22px; }
+    .login-logo { display:flex; align-items:center; gap:14px; margin-bottom:28px; }
+    .login-logo-icon { width:48px;height:48px; background:transparent; border-radius:14px;
+                       display:flex;align-items:center;justify-content:center;
+                       box-shadow:0 8px 20px rgba(16,75,38,.28); overflow:hidden; }
     .login-logo strong { font-size:1.1rem; font-weight:800; display:block; }
     .login-logo small  { font-size:.75rem; color:var(--text-muted); }
     h1 { font-size:1.4rem; font-weight:900; margin-bottom:4px; }
@@ -44,11 +45,8 @@ $appUrl = Config::get('APP_URL');
 <body>
 <div class="login-card">
   <div class="login-logo">
-    <div class="login-logo-icon" style="display:flex;align-items:center;justify-content:center">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 22V2"/>
-        <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
-      </svg>
+    <div class="login-logo-icon">
+      <img src="<?= htmlspecialchars($appUrl) ?>/assets/img/logo.svg" alt="<?= htmlspecialchars($courseName) ?>" width="48" height="48" style="display:block;width:100%;height:100%;object-fit:contain"/>
     </div>
     <div>
       <strong><?= htmlspecialchars($courseName) ?></strong>
