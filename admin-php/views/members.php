@@ -94,7 +94,7 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
         <p style="font-weight:700"><?= htmlspecialchars($selectedMember['name']) ?></p>
         <p style="font-size:.75rem;color:#9ca3af"><?= htmlspecialchars($selectedMember['email']) ?></p>
       </div>
-      <div style="display:flex;gap:4px">
+      <div style="display:flex;align-items:center;gap:4px">
         <button class="btn btn-ghost btn-sm" onclick="openEditModal(<?= htmlspecialchars(json_encode($selectedMember, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)">Edit</button>
         <?php if ($selectedMember['status'] === 'Pending'): ?>
         <form method="post" style="margin:0">
@@ -104,6 +104,7 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
           <button type="submit" class="btn btn-primary btn-sm">Approve</button>
         </form>
         <?php endif; ?>
+        <a href="members.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
       </div>
     </div>
     <div class="panel-body" style="padding:16px">
@@ -174,11 +175,11 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
       <input type="hidden" name="action" value="add">
       <div class="modal-body">
         <div class="field-group"><label class="field-label">Full name</label><input name="name" class="input" required placeholder="Jane Doe"/></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group"><label class="field-label">Email</label><input name="email" type="email" class="input" required placeholder="jane@mail.com"/></div>
           <div class="field-group"><label class="field-label">Phone</label><input name="phone" class="input" placeholder="(555) 000-0000"/></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Tier</label>
             <select name="tier" class="input select-field"><option>Gold</option><option>Silver</option><option selected>Standard</option></select>
@@ -207,11 +208,11 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
       <input type="hidden" name="id" id="editId">
       <div class="modal-body">
         <div class="field-group"><label class="field-label">Full name</label><input name="name" id="editName" class="input" required/></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group"><label class="field-label">Email</label><input name="email" id="editEmail" type="email" class="input" required/></div>
           <div class="field-group"><label class="field-label">Phone</label><input name="phone" id="editPhone" class="input"/></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="modal-grid-3">
           <div class="field-group">
             <label class="field-label">Tier</label>
             <select name="tier" id="editTier" class="input select-field"><option>Gold</option><option>Silver</option><option>Standard</option></select>

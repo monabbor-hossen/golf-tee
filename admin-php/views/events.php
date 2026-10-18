@@ -61,7 +61,7 @@ $slots   = range(420, 1070, 30);
         <p style="font-weight:700;font-size:.9rem"><?= htmlspecialchars($selectedEvent['name']) ?></p>
         <p style="font-size:.75rem;color:#9ca3af"><?= date('D, M j', strtotime($selectedEvent['event_date'])) ?> · <?= SlotFormatter::format((int)$selectedEvent['start_slot']) ?></p>
       </div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;align-items:center;gap:6px">
         <form method="post" style="margin:0">
           <?= csrfField() ?>
           <input type="hidden" name="action" value="toggle_open">
@@ -75,6 +75,7 @@ $slots   = range(420, 1070, 30);
           <input type="hidden" name="id" value="<?= $selectedEvent['id'] ?>">
           <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">🗑</button>
         </form>
+        <a href="events.php?tab=<?= $tab ?>" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
       </div>
     </div>
     <div class="panel-body">
@@ -140,7 +141,7 @@ $slots   = range(420, 1070, 30);
       <input type="hidden" name="action" value="create">
       <div class="modal-body">
         <div class="field-group"><label class="field-label">Event name</label><input name="name" class="input" required placeholder="e.g. Spring Member-Guest"/></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="modal-grid-3">
           <div class="field-group">
             <label class="field-label">Date</label>
             <input type="date" name="event_date" class="input" min="<?= $today ?>" required/>
@@ -158,7 +159,7 @@ $slots   = range(420, 1070, 30);
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="modal-grid-3">
           <div class="field-group">
             <label class="field-label">Format</label>
             <select name="format" class="input select-field">

@@ -113,7 +113,10 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
         <p style="font-weight:700;font-family:monospace;font-size:.9rem"><?= htmlspecialchars($selectedTxn['id']) ?></p>
         <p style="font-size:.75rem;color:#9ca3af"><?= htmlspecialchars($selectedTxn['type']) ?></p>
       </div>
-      <span class="pill <?= $statusPill[$selectedTxn['status']] ?? 'pill-gray' ?>"><?= $selectedTxn['status'] ?></span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="pill <?= $statusPill[$selectedTxn['status']] ?? 'pill-gray' ?>"><?= $selectedTxn['status'] ?></span>
+        <a href="payments.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
+      </div>
     </div>
     <div class="panel-body">
       <div class="info-row"><span class="info-label">Customer</span><span class="info-val"><?= htmlspecialchars($selectedTxn['name']) ?></span></div>
@@ -166,7 +169,7 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
             <?php endforeach; ?>
           </datalist>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Category</label>
             <select name="type" class="input select-field">

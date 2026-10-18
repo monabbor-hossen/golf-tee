@@ -47,7 +47,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
   <!-- Revenue chart -->
   <div class="card">
     <h2 style="margin-bottom:16px">Daily revenue</h2>
-    <div style="display:flex;align-items:flex-end;gap:3px;height:140px;overflow-x:auto">
+    <div style="display:flex;align-items:flex-end;gap:3px;height:140px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
       <?php
       $start = new DateTime($fromDate);
       $end   = new DateTime($today);

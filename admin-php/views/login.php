@@ -18,6 +18,7 @@ $appUrl = Config::get('APP_URL');
   <link rel="stylesheet" href="<?= htmlspecialchars($appUrl) ?>/assets/css/main.css"/>
   <style>
     body { display:flex; align-items:center; justify-content:center; min-height:100vh;
+           padding: 24px 16px;
            background: linear-gradient(135deg,#0f2418 0%,#1e5631 100%); }
     .login-card { background:#fff; border-radius:24px; padding:40px; width:100%;
                   max-width:420px; box-shadow:0 24px 64px rgba(0,0,0,.25); }

@@ -17,10 +17,10 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
     <p>Tee sheet — <?= htmlspecialchars($dateLabel) ?>, <?= date('M j, Y', strtotime($dateStr)) ?></p>
   </div>
   <div class="page-header-actions">
-    <div style="display:flex;align-items:center;gap:8px">
-      <a href="mastergrid.php?offset=<?= $offset - 1 ?>" class="btn btn-secondary btn-sm">‹ Prev</a>
-      <a href="mastergrid.php?offset=0" class="btn btn-ghost btn-sm" style="<?= $offset === 0 ? 'color:var(--forest);' : ''; ?>">Today</a>
-      <a href="mastergrid.php?offset=<?= $offset + 1 ?>" class="btn btn-secondary btn-sm">Next ›</a>
+    <div class="grid-date-nav">
+      <a href="mastergrid.php?offset=<?= $offset - 1 ?>" class="btn btn-ghost btn-sm">‹ Prev</a>
+      <a href="mastergrid.php?offset=0" class="btn btn-ghost btn-sm" style="<?= $offset === 0 ? 'color:var(--forest);font-weight:700;' : ''; ?>">Today</a>
+      <a href="mastergrid.php?offset=<?= $offset + 1 ?>" class="btn btn-ghost btn-sm">Next ›</a>
     </div>
     <button class="btn btn-primary" onclick="showModal('quickBookModal')">+ New Booking</button>
   </div>
@@ -81,34 +81,36 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
                    ($booking['status'] === 'No-show' ? 'no-show' :
                    ($isPast && $booking['status'] === 'Booked' ? 'late' : ''));
             ?>
-            <div class="booking-chip <?= $cls ?>" style="position:relative">
-              <div style="flex:1;min-width:0">
-                <p class="booking-name"><?= htmlspecialchars($booking['name']) ?></p>
-                <p class="booking-meta"><?= $booking['party'] ?> players · <?= $booking['holes'] ?>h</p>
+            <div class="booking-chip <?= $cls ?>">
+              <div class="booking-chip-header">
+                <div style="flex:1;min-width:0">
+                  <p class="booking-name"><?= htmlspecialchars($booking['name']) ?></p>
+                  <p class="booking-meta"><?= $booking['party'] ?> players · <?= $booking['holes'] ?>h</p>
+                </div>
+                <span class="pill <?= $booking['status']==='Checked in'?'pill-green':($booking['status']==='No-show'?'pill-red':'pill-gray') ?>"
+                      style="font-size:.65rem"><?= $booking['status'] ?></span>
               </div>
-              <span class="pill <?= $booking['status']==='Checked in'?'pill-green':($booking['status']==='No-show'?'pill-red':'pill-gray') ?>"
-                    style="font-size:.6rem"><?= $booking['status'] ?></span>
               <?php if (!$isPast || $booking['status'] === 'Booked'): ?>
-              <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+              <div class="booking-chip-actions">
                 <?php if ($booking['status'] === 'Booked'): ?>
                 <form method="post" style="margin:0">
                   <?= csrfField() ?>
                   <input type="hidden" name="action" value="checkin">
                   <input type="hidden" name="bid" value="<?= $booking['id'] ?>">
-                  <button type="submit" class="btn btn-primary btn-sm" style="height:24px;padding:0 8px;font-size:.7rem">Check in</button>
+                  <button type="submit" class="btn btn-primary btn-xs">Check in</button>
                 </form>
                 <form method="post" style="margin:0">
                   <?= csrfField() ?>
                   <input type="hidden" name="action" value="noshow">
                   <input type="hidden" name="bid" value="<?= $booking['id'] ?>">
-                  <button type="submit" class="btn btn-ghost btn-sm" style="height:24px;padding:0 8px;font-size:.7rem;color:#9ca3af">No-show</button>
+                  <button type="submit" class="btn btn-ghost btn-xs" style="color:#9ca3af">No-show</button>
                 </form>
                 <?php endif; ?>
                 <form method="post" style="margin:0" onsubmit="return confirm('Cancel this booking?')">
                   <?= csrfField() ?>
                   <input type="hidden" name="action" value="cancel">
                   <input type="hidden" name="bid" value="<?= $booking['id'] ?>">
-                  <button type="submit" class="btn btn-ghost btn-sm" style="height:24px;padding:0 8px;font-size:.7rem;color:var(--danger)">✕</button>
+                  <button type="submit" class="btn btn-ghost btn-xs" style="color:var(--danger)">✕</button>
                 </form>
               </div>
               <?php endif; ?>
@@ -154,7 +156,7 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
             <?php endforeach; ?>
           </datalist>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Time</label>
             <select name="tee_slot" class="input select-field" id="qbSlot">
@@ -169,7 +171,7 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Players</label>
             <select name="party" class="input select-field">

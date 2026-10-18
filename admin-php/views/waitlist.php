@@ -85,7 +85,7 @@ use App\Domain\SlotFormatter;
             <?php endforeach; ?>
           </datalist>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Date</label>
             <input type="date" name="tee_date" class="input" min="<?= $today ?>" value="<?= $today ?>"/>
@@ -99,7 +99,7 @@ use App\Domain\SlotFormatter;
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Players</label>
             <select name="party" class="input select-field">

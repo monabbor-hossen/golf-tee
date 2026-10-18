@@ -196,7 +196,7 @@ $appUrl = Config::get('APP_URL');
         <div id="searchResults" class="search-dropdown hidden"></div>
       </div>
       <div class="topbar-right">
-        <a href="mastergrid.php" class="btn-ghost hide-sm">
+        <a href="mastergrid.php" class="btn btn-ghost btn-sm hide-sm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 5h16v15H4zM4 10h16M9 5v15"/></svg>
           Today's tee sheet
         </a>

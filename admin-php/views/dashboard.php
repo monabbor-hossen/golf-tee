@@ -68,21 +68,23 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
     ?>
     <div class="soon-row">
       <span class="soon-time"><?= SlotFormatter::format((int)$b['tee_slot']) ?></span>
-      <div style="flex:1;min-width:0">
+      <div class="soon-info">
         <p class="soon-name"><?= htmlspecialchars($b['name']) ?></p>
         <p class="soon-meta"><?= $b['party'] ?> players · <?= $b['holes'] ?> holes · <?= $teeName ?></p>
       </div>
-      <span class="pill <?= $pillCls ?>"><?= $st ?></span>
-      <?php if ($st !== 'Checked in'): ?>
-      <form method="post" action="api/bookings.php" style="margin:0">
-        <?= csrfField() ?>
-        <input type="hidden" name="action" value="check_in">
-        <input type="hidden" name="id" value="<?= $b['id'] ?>">
-        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--forest)">Check in</button>
-      </form>
-      <?php else: ?>
-      <span style="color:#9ca3af;font-size:.8rem;padding:0 12px">Done</span>
-      <?php endif; ?>
+      <div class="soon-action">
+        <span class="pill <?= $pillCls ?>"><?= $st ?></span>
+        <?php if ($st !== 'Checked in'): ?>
+        <form method="post" action="api/bookings.php" style="margin:0">
+          <?= csrfField() ?>
+          <input type="hidden" name="action" value="check_in">
+          <input type="hidden" name="id" value="<?= $b['id'] ?>">
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--forest)">Check in</button>
+        </form>
+        <?php else: ?>
+        <span class="soon-done">Done</span>
+        <?php endif; ?>
+      </div>
     </div>
     <?php endforeach; ?>
     <?php endif; ?>
@@ -214,7 +216,7 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
             <?php endforeach; ?>
           </datalist>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Time</label>
             <select name="tee_slot" class="input select-field">
@@ -236,7 +238,7 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-grid-2">
           <div class="field-group">
             <label class="field-label">Players</label>
             <select name="party" class="input select-field">

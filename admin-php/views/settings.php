@@ -236,42 +236,44 @@ if ($saved): ?>
     <button class="btn btn-primary btn-sm" onclick="showModal('inviteStaffModal')">+ Invite staff</button>
   </div>
   <p class="section-desc">Manage team access levels</p>
-  <table style="width:100%;border-collapse:collapse;font-size:.875rem">
-    <thead>
+  <div class="table-wrap">
+    <table style="width:100%;border-collapse:collapse;font-size:.875rem">
+      <thead>
+        <tr>
+          <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Name</th>
+          <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Email</th>
+          <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Role</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php foreach ($staff as $s): ?>
       <tr>
-        <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Name</th>
-        <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Email</th>
-        <th style="padding:8px 0;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid var(--border)">Role</th>
-        <th></th>
+        <td style="padding:12px 0;border-bottom:1px solid #f9fafb">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:28px;height:28px;font-size:.65rem"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
+            <span style="font-weight:600"><?= htmlspecialchars($s['name']) ?></span>
+          </div>
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #f9fafb;color:#6b7280"><?= htmlspecialchars($s['email']) ?></td>
+        <td style="padding:12px 0;border-bottom:1px solid #f9fafb">
+          <span class="pill <?= $s['role'] === 'Owner' ? 'pill-gold' : ($s['role'] === 'Manager' ? 'pill-green' : 'pill-gray') ?>"><?= $s['role'] ?></span>
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #f9fafb;text-align:right">
+          <?php if ($s['id'] != \App\Core\Session::getStaffId() && $s['role'] !== 'Owner'): ?>
+          <form method="post" style="display:inline" onsubmit="return confirm('Remove this staff member?')">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="remove_staff">
+            <input type="hidden" name="staff_id" value="<?= $s['id'] ?>">
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Remove</button>
+          </form>
+          <?php endif; ?>
+        </td>
       </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($staff as $s): ?>
-    <tr>
-      <td style="padding:12px 0;border-bottom:1px solid #f9fafb">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="avatar" style="width:28px;height:28px;font-size:.65rem"><?= strtoupper(substr($s['name'], 0, 2)) ?></div>
-          <span style="font-weight:600"><?= htmlspecialchars($s['name']) ?></span>
-        </div>
-      </td>
-      <td style="padding:12px 0;border-bottom:1px solid #f9fafb;color:#6b7280"><?= htmlspecialchars($s['email']) ?></td>
-      <td style="padding:12px 0;border-bottom:1px solid #f9fafb">
-        <span class="pill <?= $s['role'] === 'Owner' ? 'pill-gold' : ($s['role'] === 'Manager' ? 'pill-green' : 'pill-gray') ?>"><?= $s['role'] ?></span>
-      </td>
-      <td style="padding:12px 0;border-bottom:1px solid #f9fafb;text-align:right">
-        <?php if ($s['id'] != \App\Core\Session::getStaffId() && $s['role'] !== 'Owner'): ?>
-        <form method="post" style="display:inline" onsubmit="return confirm('Remove this staff member?')">
-          <?= csrfField() ?>
-          <input type="hidden" name="action" value="remove_staff">
-          <input type="hidden" name="staff_id" value="<?= $s['id'] ?>">
-          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Remove</button>
-        </form>
-        <?php endif; ?>
-      </td>
-    </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 <!-- Invite Staff Modal -->
 <div class="modal-backdrop hidden" id="inviteStaffModal">
