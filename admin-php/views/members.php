@@ -5,6 +5,38 @@ use App\Domain\SlotFormatter;
 
 $tierCls   = ['Gold' => 'pill-gold', 'Silver' => 'pill-silver', 'Standard' => 'pill-sand'];
 $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 'pill-amber'];
+
+// Helper to render sortable column headers with SVG icons (top-to-bottom and bottom-to-top)
+$renderSortTh = function(string $col, string $label, string $defaultDir = 'asc') use ($sort, $dir) {
+    $isActive = ($sort === $col);
+    $currentDir = $isActive ? strtolower($dir) : '';
+
+    if ($isActive) {
+        $nextDir = ($currentDir === 'asc') ? 'desc' : 'asc';
+    } else {
+        $nextDir = $defaultDir;
+    }
+
+    $params = array_merge($_GET, ['sort' => $col, 'dir' => $nextDir]);
+    $url = '?' . http_build_query($params);
+
+    // SVG arrows (pure vector, no text icons)
+    $svgAsc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest)"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+    $svgDesc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest)"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+    $svgNeutral = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>';
+
+    $icon = $svgNeutral;
+    if ($isActive) {
+        $icon = ($currentDir === 'desc') ? $svgDesc : $svgAsc;
+    }
+
+    $sortTitle = $isActive
+        ? ($currentDir === 'desc' ? 'Sorted Top-to-Bottom. Click to reverse.' : 'Sorted Bottom-to-Top. Click to reverse.')
+        : 'Sort by ' . htmlspecialchars($label) . ' (' . ($defaultDir === 'desc' ? 'Top-to-Bottom' : 'Ascending') . ')';
+
+    return '<th><a href="' . htmlspecialchars($url) . '" class="sort-header ' . ($isActive ? 'active' : '') . '" title="' . $sortTitle . '">'
+        . htmlspecialchars($label) . ' ' . $icon . '</a></th>';
+};
 ?>
 
 <div class="page-header">
@@ -13,14 +45,27 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
     <p><?= $total ?> total members · <?= $counts['Pending'] ?? 0 ?> pending approval</p>
   </div>
   <div class="page-header-actions">
-    <a href="members.php?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" class="btn btn-secondary">⬇ Export CSV</a>
-    <button class="btn btn-primary" onclick="showModal('addMemberModal')">+ Add Member</button>
+    <a href="members.php?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export CSV
+    </a>
+    <button class="btn btn-primary" onclick="showModal('addMemberModal')" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Add Member
+    </button>
   </div>
 </div>
 
 <!-- Filters -->
 <div class="filters">
-  <div class="filter-search" style="max-width:280px">
+  <div class="filter-search" style="max-width:260px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3"/></svg>
     <input class="input" type="text" name="q" placeholder="Search members…"
            value="<?= htmlspecialchars($query) ?>" onkeyup="applyFilter()" id="searchQ"/>
@@ -37,6 +82,45 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
     <button class="<?= $tier === $t ? 'active' : '' ?>" onclick="setFilter('tier','<?= $t ?>')"><?= $t ?></button>
     <?php endforeach; ?>
   </div>
+  <div class="filter-select-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+    <select onchange="setFilter('spend', this.value)" title="Filter by spend">
+      <option value="All" <?= ($spend ?? 'All') === 'All' ? 'selected' : '' ?>>All Spend</option>
+      <option value="5000+" <?= ($spend ?? 'All') === '5000+' ? 'selected' : '' ?>>Top Spend ($5k+)</option>
+      <option value="2000-5000" <?= ($spend ?? 'All') === '2000-5000' ? 'selected' : '' ?>>$2,000 – $5,000</option>
+      <option value="1000-2000" <?= ($spend ?? 'All') === '1000-2000' ? 'selected' : '' ?>>$1,000 – $2,000</option>
+      <option value="under1000" <?= ($spend ?? 'All') === 'under1000' ? 'selected' : '' ?>>Under $1,000</option>
+    </select>
+  </div>
+  <div class="filter-select-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M6 12h12m-9 6h6"/>
+    </svg>
+    <select onchange="applySort(this.value)" title="Sort members order">
+      <option value="spend:desc" <?= $sort === 'spend' && $dir === 'desc' ? 'selected' : '' ?>>Spend: High to Low (Top-to-Bottom)</option>
+      <option value="spend:asc" <?= $sort === 'spend' && $dir === 'asc' ? 'selected' : '' ?>>Spend: Low to High</option>
+      <option value="tier:asc" <?= $sort === 'tier' && $dir === 'asc' ? 'selected' : '' ?>>Tier: Gold → Standard (Top-to-Bottom)</option>
+      <option value="tier:desc" <?= $sort === 'tier' && $dir === 'desc' ? 'selected' : '' ?>>Tier: Standard → Gold</option>
+      <option value="status:asc" <?= $sort === 'status' && $dir === 'asc' ? 'selected' : '' ?>>Status: Active → Suspended (Top-to-Bottom)</option>
+      <option value="status:desc" <?= $sort === 'status' && $dir === 'desc' ? 'selected' : '' ?>>Status: Suspended → Active</option>
+      <option value="name:asc" <?= $sort === 'name' && $dir === 'asc' ? 'selected' : '' ?>>Name: A → Z</option>
+      <option value="name:desc" <?= $sort === 'name' && $dir === 'desc' ? 'selected' : '' ?>>Name: Z → A</option>
+      <option value="rounds:desc" <?= $sort === 'rounds' && $dir === 'desc' ? 'selected' : '' ?>>Rounds: High to Low</option>
+      <option value="hcp:asc" <?= $sort === 'hcp' && $dir === 'asc' ? 'selected' : '' ?>>HCP: Low to High</option>
+    </select>
+  </div>
+  <?php if ($query !== '' || $tier !== 'All' || $status !== 'All' || ($spend ?? 'All') !== 'All' || $sort !== 'name' || $dir !== 'asc'): ?>
+  <a href="members.php" class="btn btn-ghost btn-sm" style="height:38px;padding:0 12px;font-size:0.75rem;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px" title="Reset all filters and sorting">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <path d="M3 3v5h5"/>
+    </svg>
+    Reset
+  </a>
+  <?php endif; ?>
 </div>
 
 <!-- Table + Detail Panel -->
@@ -47,12 +131,12 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
         <table>
           <thead>
             <tr>
-              <th><a href="?<?= http_build_query(array_merge($_GET, ['sort' => 'name', 'dir' => $sort === 'name' && $dir === 'asc' ? 'desc' : 'asc'])) ?>">Name <?= $sort === 'name' ? ($dir === 'asc' ? '↑' : '↓') : '' ?></a></th>
-              <th>Tier</th>
-              <th>Status</th>
-              <th><a href="?<?= http_build_query(array_merge($_GET, ['sort' => 'hcp', 'dir' => $sort === 'hcp' && $dir === 'asc' ? 'desc' : 'asc'])) ?>">HCP <?= $sort === 'hcp' ? ($dir === 'asc' ? '↑' : '↓') : '' ?></a></th>
-              <th><a href="?<?= http_build_query(array_merge($_GET, ['sort' => 'rounds', 'dir' => $sort === 'rounds' && $dir === 'asc' ? 'desc' : 'asc'])) ?>">Rounds <?= $sort === 'rounds' ? ($dir === 'asc' ? '↑' : '↓') : '' ?></a></th>
-              <th><a href="?<?= http_build_query(array_merge($_GET, ['sort' => 'spend', 'dir' => $sort === 'spend' && $dir === 'asc' ? 'desc' : 'asc'])) ?>">Spend <?= $sort === 'spend' ? ($dir === 'asc' ? '↑' : '↓') : '' ?></a></th>
+              <?= $renderSortTh('name', 'Name', 'asc') ?>
+              <?= $renderSortTh('tier', 'Tier', 'asc') ?>
+              <?= $renderSortTh('status', 'Status', 'asc') ?>
+              <?= $renderSortTh('hcp', 'HCP', 'asc') ?>
+              <?= $renderSortTh('rounds', 'Rounds', 'desc') ?>
+              <?= $renderSortTh('spend', 'Spend', 'desc') ?>
               <th>Last round</th>
             </tr>
           </thead>
@@ -270,6 +354,16 @@ function openEditModal(m) {
 function setFilter(key, val) {
   const url = new URL(window.location.href);
   url.searchParams.set(key, val);
+  window.location.href = url.toString();
+}
+function applySort(val) {
+  if (!val) return;
+  const parts = val.split(':');
+  const sort = parts[0];
+  const dir = parts[1] || 'asc';
+  const url = new URL(window.location.href);
+  url.searchParams.set('sort', sort);
+  url.searchParams.set('dir', dir);
   window.location.href = url.toString();
 }
 let filterTimer;

@@ -60,18 +60,25 @@ class MemberController
         $query    = $request->getString('q');
         $tier     = $request->getString('tier', 'All');
         $status   = $request->getString('status', 'All');
+        $spend    = $request->getString('spend', 'All');
         $sort     = $request->getString('sort', 'name');
-        $dir      = $request->getString('dir', 'asc');
+        
+        $rawDir   = $request->getString('dir');
+        if ($rawDir === '') {
+            $dir = in_array($sort, ['spend', 'rounds'], true) ? 'desc' : 'asc';
+        } else {
+            $dir = strtolower($rawDir) === 'desc' ? 'desc' : 'asc';
+        }
         $selected = $request->getInt('memberId') ?: $request->getInt('id');
 
         // CSV Export
         if ($request->getString('export') === 'csv') {
             $headers = ['ID', 'Name', 'Email', 'Phone', 'Tier', 'Status', 'Handicap', 'Rounds', 'Spend', 'Joined', 'Last Play'];
-            $rows = $this->memberService->exportCsv($query, $tier, $status);
+            $rows = $this->memberService->exportCsv($query, $tier, $status, $spend, $sort, $dir);
             Response::csv('members-' . date('Y-m-d') . '.csv', $headers, $rows);
         }
 
-        $data = $this->memberService->listMembers($query, $tier, $status, $sort, $dir, $selected ?: null);
+        $data = $this->memberService->listMembers($query, $tier, $status, $sort, $dir, $selected ?: null, $spend);
         $data['currentPage'] = 'members';
 
         View::render('members', $data);

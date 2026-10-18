@@ -29,9 +29,10 @@ class MemberService
         string $status = 'All',
         string $sort = 'name',
         string $dir = 'asc',
-        ?int $selectedId = null
+        ?int $selectedId = null,
+        string $spend = 'All'
     ): array {
-        $members = $this->memberRepo->queryMembers($query, $tier, $status, $sort, $dir);
+        $members = $this->memberRepo->queryMembers($query, $tier, $status, $sort, $dir, $spend);
         $counts = $this->memberRepo->getStatusCounts();
         $total = $this->memberRepo->getTotalCount();
 
@@ -59,6 +60,7 @@ class MemberService
             'query'          => $query,
             'tier'           => $tier,
             'status'         => $status,
+            'spend'          => $spend,
             'sort'           => $sort,
             'dir'            => $dir,
         ];
@@ -121,9 +123,15 @@ class MemberService
         return $this->memberRepo->delete($id);
     }
 
-    public function exportCsv(string $query = '', string $tier = 'All', string $status = 'All'): array
-    {
-        $members = $this->memberRepo->queryMembers($query, $tier, $status);
+    public function exportCsv(
+        string $query = '',
+        string $tier = 'All',
+        string $status = 'All',
+        string $spend = 'All',
+        string $sort = 'name',
+        string $dir = 'asc'
+    ): array {
+        $members = $this->memberRepo->queryMembers($query, $tier, $status, $sort, $dir, $spend);
         $rows = [];
         foreach ($members as $m) {
             $rows[] = [

@@ -33,7 +33,8 @@ class MemberRepository
         string $tier = 'All',
         string $status = 'All',
         string $sort = 'name',
-        string $dir = 'ASC'
+        string $dir = 'ASC',
+        string $spend = 'All'
     ): array {
         $allowedSorts = ['name', 'tier', 'hcp', 'rounds', 'spend', 'status'];
         $sortCol = in_array($sort, $allowedSorts, true) ? $sort : 'name';
@@ -60,7 +61,40 @@ class MemberRepository
             $params[] = $status;
         }
 
-        $sql = 'SELECT * FROM members WHERE ' . implode(' AND ', $where) . " ORDER BY {$sortCol} {$direction}";
+        if ($spend !== 'All' && $spend !== '') {
+            if ($spend === '5000+' || $spend === 'top') {
+                $where[] = 'spend >= 5000';
+            } elseif ($spend === '2000-5000') {
+                $where[] = 'spend >= 2000 AND spend < 5000';
+            } elseif ($spend === '1000-2000') {
+                $where[] = 'spend >= 1000 AND spend < 2000';
+            } elseif ($spend === 'under1000') {
+                $where[] = 'spend < 1000';
+            }
+        }
+
+        // Top to bottom and custom sort mappings
+        if ($sortCol === 'tier') {
+            // Top to bottom (ASC): Gold -> Silver -> Standard
+            // Bottom to top (DESC): Standard -> Silver -> Gold
+            $orderClause = "CASE tier WHEN 'Gold' THEN 1 WHEN 'Silver' THEN 2 WHEN 'Standard' THEN 3 ELSE 4 END {$direction}, spend DESC";
+        } elseif ($sortCol === 'status') {
+            // Top to bottom (ASC): Active -> Pending -> Suspended
+            // Bottom to top (DESC): Suspended -> Pending -> Active
+            $orderClause = "CASE status WHEN 'Active' THEN 1 WHEN 'Pending' THEN 2 WHEN 'Suspended' THEN 3 ELSE 4 END {$direction}, name ASC";
+        } elseif ($sortCol === 'spend') {
+            // Top to bottom (DESC): Highest spend to lowest spend
+            // Bottom to top (ASC): Lowest spend to highest spend
+            $orderClause = "spend {$direction}, name ASC";
+        } elseif ($sortCol === 'rounds') {
+            $orderClause = "rounds {$direction}, name ASC";
+        } elseif ($sortCol === 'hcp') {
+            $orderClause = "hcp {$direction}, name ASC";
+        } else {
+            $orderClause = "name {$direction}";
+        }
+
+        $sql = 'SELECT * FROM members WHERE ' . implode(' AND ', $where) . " ORDER BY {$orderClause}";
         return Database::fetchAll($sql, $params);
     }
 
