@@ -115,7 +115,12 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         <span class="pill <?= $statusPill[$selectedTxn['status']] ?? 'pill-gray' ?>"><?= $selectedTxn['status'] ?></span>
-        <a href="payments.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
+        <a href="payments.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;padding:4px 8px;display:inline-flex;align-items:center" title="Close details">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </a>
       </div>
     </div>
     <div class="panel-body">
@@ -134,14 +139,25 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
         <?= csrfField() ?>
         <input type="hidden" name="action" value="refund">
         <input type="hidden" name="id" value="<?= htmlspecialchars($selectedTxn['id']) ?>">
-        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger);width:100%;justify-content:center">↩ Issue refund</button>
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger);width:100%;justify-content:center;display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          Issue refund
+        </button>
       </form>
       <?php elseif ($selectedTxn['status'] === 'Pending'): ?>
       <form method="post" action="api/payments.php" style="margin-top:16px">
         <?= csrfField() ?>
         <input type="hidden" name="action" value="mark_paid">
         <input type="hidden" name="id" value="<?= htmlspecialchars($selectedTxn['id']) ?>">
-        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center">✓ Mark as paid</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Mark as paid
+        </button>
       </form>
       <?php endif; ?>
     </div>
@@ -154,7 +170,12 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
   <div class="modal">
     <div class="modal-header">
       <div><p class="modal-title">Record a payment</p><p class="modal-desc">Log a counter sale, membership fee or event entry.</p></div>
-      <button class="close-btn" onclick="closeModal('recordPayModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('recordPayModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post" action="api/payments.php">
       <?= csrfField() ?>

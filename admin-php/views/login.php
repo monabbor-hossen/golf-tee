@@ -44,7 +44,12 @@ $appUrl = Config::get('APP_URL');
 <body>
 <div class="login-card">
   <div class="login-logo">
-    <div class="login-logo-icon">⛳</div>
+    <div class="login-logo-icon" style="display:flex;align-items:center;justify-content:center">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 22V2"/>
+        <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
+      </svg>
+    </div>
     <div>
       <strong><?= htmlspecialchars($courseName) ?></strong>
       <small>Course Administration</small>
@@ -55,7 +60,14 @@ $appUrl = Config::get('APP_URL');
   <p class="login-sub">Sign in with your staff account to continue</p>
 
   <?php if (!empty($error)): ?>
-    <div class="error-msg">⚠️ <?= htmlspecialchars($error) ?></div>
+    <div class="error-msg" style="display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span><?= htmlspecialchars($error) ?></span>
+    </div>
   <?php endif; ?>
 
   <form method="post" action="login.php">

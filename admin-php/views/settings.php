@@ -5,13 +5,21 @@ use App\Domain\SlotFormatter;
 
 if ($saved): ?>
 <div style="background:rgba(30,86,49,.1);color:var(--forest);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.875rem;margin-bottom:16px;display:flex;align-items:center;gap:8px">
-  ✓ Settings saved successfully
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  <span>Settings saved successfully</span>
 </div>
 <?php endif; ?>
 
 <?php if (!empty($error)): ?>
 <div style="background:rgba(220,38,38,.1);color:var(--danger);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.875rem;margin-bottom:16px;display:flex;align-items:center;gap:8px">
-  ⚠️ <?= htmlspecialchars($error) ?>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+  <span><?= htmlspecialchars($error) ?></span>
 </div>
 <?php endif; ?>
 
@@ -280,7 +288,12 @@ if ($saved): ?>
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
       <div><p class="modal-title">Invite staff member</p><p class="modal-desc">They'll get an email to set up their account.</p></div>
-      <button class="close-btn" onclick="closeModal('inviteStaffModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('inviteStaffModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>

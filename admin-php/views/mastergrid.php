@@ -64,14 +64,23 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
         ?>
         <td class="tee-cell" id="cell-<?= $key ?>">
           <?php if ($block): ?>
-          <div class="block-chip">
-            🚧 <?= htmlspecialchars($block['reason']) ?>
+          <div class="block-chip" style="display:inline-flex;align-items:center;gap:5px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+            <span><?= htmlspecialchars($block['reason']) ?></span>
             <?php if (!$isPast): ?>
-            <form method="post" style="display:inline;margin-left:8px">
+            <form method="post" style="display:inline;margin-left:6px">
               <?= csrfField() ?>
               <input type="hidden" name="action" value="unblock">
               <input type="hidden" name="block_id" value="<?= $block['id'] ?>">
-              <button type="submit" style="font-size:.7rem;color:#9ca3af;background:none;border:none;cursor:pointer">✕</button>
+              <button type="submit" style="color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center" aria-label="Unblock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
             </form>
             <?php endif; ?>
           </div>
@@ -110,7 +119,12 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
                   <?= csrfField() ?>
                   <input type="hidden" name="action" value="cancel">
                   <input type="hidden" name="bid" value="<?= $booking['id'] ?>">
-                  <button type="submit" class="btn btn-ghost btn-xs" style="color:var(--danger)">✕</button>
+                  <button type="submit" class="btn btn-ghost btn-xs" style="color:var(--danger);padding:2px 4px;display:inline-flex;align-items:center" aria-label="Cancel booking">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 </form>
               </div>
               <?php endif; ?>
@@ -120,8 +134,12 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
             <button class="add-chip" onclick="openQuickBook(<?= $slot ?>, <?= $ti ?>)">
               + Add booking
             </button>
-            <button class="add-chip" onclick="openBlockSlot(<?= $slot ?>, <?= $ti ?>)" style="margin-top:4px;color:#9ca3af">
-              🚧 Block
+            <button class="add-chip" onclick="openBlockSlot(<?= $slot ?>, <?= $ti ?>)" style="margin-top:4px;color:#9ca3af;display:inline-flex;align-items:center;gap:4px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              </svg>
+              Block
             </button>
             <?php else: ?>
             <span style="color:#e5e7eb;font-size:.75rem;padding:4px 8px">—</span>
@@ -141,7 +159,12 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
   <div class="modal">
     <div class="modal-header">
       <div><p class="modal-title">New Booking</p><p class="modal-desc"><?= htmlspecialchars($dateLabel) ?></p></div>
-      <button class="close-btn" onclick="closeModal('quickBookModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('quickBookModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>
@@ -200,7 +223,12 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
       <div><p class="modal-title">Block slot</p></div>
-      <button class="close-btn" onclick="closeModal('blockSlotModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('blockSlotModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>
@@ -217,7 +245,13 @@ $util = $totalSlots > 0 ? (int)round(($booked / max(1, $totalSlots - $blocked)) 
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" onclick="closeModal('blockSlotModal')">Cancel</button>
-        <button type="submit" class="btn btn-secondary">🚧 Block slot</button>
+        <button type="submit" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          Block slot
+        </button>
       </div>
     </form>
   </div>

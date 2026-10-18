@@ -104,7 +104,12 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
           <button type="submit" class="btn btn-primary btn-sm">Approve</button>
         </form>
         <?php endif; ?>
-        <a href="members.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
+        <a href="members.php" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;padding:4px 8px;display:inline-flex;align-items:center" title="Close details">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </a>
       </div>
     </div>
     <div class="panel-body" style="padding:16px">
@@ -155,7 +160,16 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
           <?= csrfField() ?>
           <input type="hidden" name="action" value="delete">
           <input type="hidden" name="id" value="<?= $selectedMember['id'] ?>">
-          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">🗑 Delete</button>
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger);display:inline-flex;align-items:center;gap:6px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            Delete
+          </button>
         </form>
       </div>
     </div>
@@ -168,7 +182,12 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
   <div class="modal">
     <div class="modal-header">
       <div><p class="modal-title">Add member</p><p class="modal-desc">New members start as Pending until approved.</p></div>
-      <button class="close-btn" onclick="closeModal('addMemberModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('addMemberModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>
@@ -200,7 +219,12 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
   <div class="modal">
     <div class="modal-header">
       <div><p class="modal-title">Edit member</p><p class="modal-desc">Update profile and membership details.</p></div>
-      <button class="close-btn" onclick="closeModal('editMemberModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('editMemberModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post" id="editMemberForm">
       <?= csrfField() ?>

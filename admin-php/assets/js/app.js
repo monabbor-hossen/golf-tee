@@ -5,7 +5,7 @@ const APP_URL = document.documentElement.dataset.appUrl || '';
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   if (!t) return;
-  t.innerHTML = `<span class="toast-check">✓</span> ${msg}`;
+  t.innerHTML = `<span class="toast-check" style="display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> ${msg}`;
   t.classList.remove('hidden');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.add('hidden'), 2800);

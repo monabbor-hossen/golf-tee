@@ -57,7 +57,12 @@ use App\Domain\SlotFormatter;
         <?= csrfField() ?>
         <input type="hidden" name="action" value="remove">
         <input type="hidden" name="id" value="<?= $w['id'] ?>">
-        <button type="submit" class="btn btn-ghost btn-sm" style="color:#9ca3af">✕</button>
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:#9ca3af;padding:4px 8px;display:inline-flex;align-items:center" aria-label="Remove from waitlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </form>
     </div>
   </div>
@@ -70,7 +75,12 @@ use App\Domain\SlotFormatter;
   <div class="modal">
     <div class="modal-header">
       <div><p class="modal-title">Add to waitlist</p></div>
-      <button class="close-btn" onclick="closeModal('addWaitModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('addWaitModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>

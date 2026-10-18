@@ -73,9 +73,22 @@ $slots   = range(420, 1070, 30);
           <?= csrfField() ?>
           <input type="hidden" name="action" value="delete">
           <input type="hidden" name="id" value="<?= $selectedEvent['id'] ?>">
-          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">🗑</button>
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)" aria-label="Delete event">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
         </form>
-        <a href="events.php?tab=<?= $tab ?>" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;font-size:1rem;padding:0 8px" title="Close details">✕</a>
+        <a href="events.php?tab=<?= $tab ?>" class="btn btn-ghost btn-sm hide-desktop" style="color:#9ca3af;padding:4px 8px;display:inline-flex;align-items:center" title="Close details">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </a>
       </div>
     </div>
     <div class="panel-body">
@@ -120,7 +133,12 @@ $slots   = range(420, 1070, 30);
           <input type="hidden" name="action" value="unregister">
           <input type="hidden" name="reg_id" value="<?= $r['id'] ?>">
           <input type="hidden" name="event_id" value="<?= $selectedEvent['id'] ?>">
-          <button type="submit" class="btn btn-ghost btn-sm" style="color:#9ca3af;height:24px;padding:0 6px">✕</button>
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:#9ca3af;height:24px;padding:0 6px;display:inline-flex;align-items:center" aria-label="Unregister">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </form>
       </div>
       <?php endforeach; ?>
@@ -134,7 +152,12 @@ $slots   = range(420, 1070, 30);
   <div class="modal wide">
     <div class="modal-header">
       <div><p class="modal-title">Create event</p><p class="modal-desc">Tournaments, clinics and leagues members can register for.</p></div>
-      <button class="close-btn" onclick="closeModal('createEventModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('createEventModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post">
       <?= csrfField() ?>

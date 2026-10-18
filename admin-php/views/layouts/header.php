@@ -30,7 +30,12 @@ $appUrl = Config::get('APP_URL');
   <!-- ── Desktop Sidebar ────────────────────────── -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <span class="logo-icon">⛳</span>
+      <span class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 22V2"/>
+          <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
+        </svg>
+      </span>
       <div class="logo-text">
         <strong><?= htmlspecialchars($courseName) ?></strong>
         <small>Course admin</small>
@@ -107,13 +112,23 @@ $appUrl = Config::get('APP_URL');
   <aside class="sidebar sidebar-drawer" id="sidebarDrawer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)">
       <div class="sidebar-logo" style="margin:0">
-        <span class="logo-icon">⛳</span>
+        <span class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 22V2"/>
+            <path d="M4 4c5-2 9 3 14 0v9c-5 3-9-2-14 0"/>
+          </svg>
+        </span>
         <div class="logo-text">
           <strong><?= htmlspecialchars($courseName) ?></strong>
           <small>Course admin</small>
         </div>
       </div>
-      <button class="drawer-close" onclick="closeDrawer()" aria-label="Close menu">✕</button>
+      <button class="drawer-close" onclick="closeDrawer()" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -182,8 +197,13 @@ $appUrl = Config::get('APP_URL');
             <p style="font-size:.68rem;color:rgba(255,255,255,.4)"><?= htmlspecialchars($layout['staffRole'] ?: 'Owner') ?></p>
           </div>
         </div>
-        <a href="logout.php" style="color:#ef4444;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:4px">
-          🚪 Exit
+        <a href="logout.php" style="color:#ef4444;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Exit
         </a>
       </div>
     </div>
@@ -262,8 +282,21 @@ $appUrl = Config::get('APP_URL');
             <svg class="profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="profile-dropdown hidden" id="profileDropdown">
-            <a href="settings.php" class="dropdown-item">⚙️ Settings</a>
-            <a href="logout.php"   class="dropdown-item danger">🚪 Sign out</a>
+            <a href="settings.php" class="dropdown-item" style="display:flex;align-items:center;gap:8px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              Settings
+            </a>
+            <a href="logout.php" class="dropdown-item danger" style="display:flex;align-items:center;gap:8px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign out
+            </a>
           </div>
         </div>
       </div>

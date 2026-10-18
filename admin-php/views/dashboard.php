@@ -12,7 +12,20 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
     <h1>Good <?= date('H') < 12 ? 'morning' : (date('H') < 17 ? 'afternoon' : 'evening') ?>, <?= $staffName ?></h1>
     <p>
       <?= date('l, F j') ?> &nbsp;·&nbsp;
-      ☀️ Course open
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        Course open
+      </span>
       &nbsp;·&nbsp;
       <span style="color:var(--forest);font-weight:600;">
         <span class="pulse-dot" style="display:inline-block;margin-right:4px;"></span>Live
@@ -162,7 +175,12 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
       ?>
       <?php if (empty($attentions)): ?>
         <p style="color:#6b7280;font-size:.875rem;display:flex;align-items:center;gap:6px">
-          <span style="color:var(--forest)">✓</span> All clear
+          <span style="color:var(--forest);display:inline-flex;align-items:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>
+          All clear
         </p>
       <?php else: ?>
       <?php foreach (array_slice($attentions, 0, 4) as [$tone, $title, $desc, $url]): ?>
@@ -181,7 +199,14 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
     <?php if ($nextEvent): ?>
     <a href="events.php?id=<?= $nextEvent['id'] ?>" class="card" style="text-decoration:none;display:block;transition:border-color .15s" onmouseover="this.style.borderColor='var(--forest)'" onmouseout="this.style.borderColor='var(--border)'">
       <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--forest);display:flex;align-items:center;gap:6px">
-        🏆 Next event · <?= date('M j', strtotime($nextEvent['event_date'])) ?>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1h10v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34"/>
+          <path d="M6 4h12v7a6 6 0 0 1-12 0V4z"/>
+        </svg>
+        Next event · <?= date('M j', strtotime($nextEvent['event_date'])) ?>
       </p>
       <p style="font-weight:700;margin-top:6px"><?= htmlspecialchars($nextEvent['name']) ?></p>
       <div class="event-fill">
@@ -201,7 +226,12 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
         <p class="modal-title">New Booking</p>
         <p class="modal-desc">Add a tee time for today</p>
       </div>
-      <button class="close-btn" onclick="closeModal('newBookingModal')">✕</button>
+      <button class="close-btn" onclick="closeModal('newBookingModal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
     <form method="post" action="api/bookings.php">
       <?= csrfField() ?>
