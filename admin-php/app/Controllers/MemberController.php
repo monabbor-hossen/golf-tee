@@ -55,6 +55,8 @@ class MemberController
                 $this->memberService->deleteMember($id);
                 Response::redirect('members.php');
             }
+
+            Response::redirect('members.php');
         }
 
         $query    = $request->getString('q');

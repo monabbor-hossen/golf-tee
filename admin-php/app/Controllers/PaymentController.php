@@ -42,6 +42,8 @@ class PaymentController
                 $this->paymentService->markPaid($id);
                 Response::redirect('payments.php?txnId=' . urlencode($id));
             }
+
+            Response::redirect('payments.php');
         }
 
         $range    = $request->getString('range', 'all');

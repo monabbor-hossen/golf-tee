@@ -57,6 +57,8 @@ class EventController
                 $this->eventService->deleteEvent($id);
                 Response::redirect('events.php');
             }
+
+            Response::redirect('events.php');
         }
 
         $tab = $request->getString('tab', 'upcoming');

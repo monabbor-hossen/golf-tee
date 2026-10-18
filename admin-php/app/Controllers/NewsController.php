@@ -59,6 +59,8 @@ class NewsController
                 $this->newsService->deleteNews($id);
                 Response::redirect('news.php');
             }
+
+            Response::redirect('news.php');
         }
 
         $category = $request->getString('category', 'All');

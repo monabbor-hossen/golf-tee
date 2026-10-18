@@ -43,9 +43,12 @@ class AuthController
             if (!empty($result['success'])) {
                 Response::redirect('index.php');
             } else {
-                $error = $result['error'] ?? 'Invalid email or password.';
+                Session::setFlash('login_error', $result['error'] ?? 'Invalid email or password.');
+                Response::redirect('login.php');
             }
         }
+
+        $error = Session::getFlash('login_error') ?? $error;
 
         $courseName = $this->settingRepo->get('course_name', 'Pine Valley Golf Club');
 

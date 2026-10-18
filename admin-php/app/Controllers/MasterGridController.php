@@ -89,6 +89,8 @@ class MasterGridController
                 $this->blockedSlotRepo->unblock($bid);
                 Response::redirect("mastergrid.php?offset={$offset}");
             }
+
+            Response::redirect("mastergrid.php?offset={$offset}");
         }
 
         // Fetch bookings and blocks for the selected day

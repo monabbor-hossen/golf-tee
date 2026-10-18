@@ -54,6 +54,8 @@ class WaitlistController
                 $this->waitlistService->removeEntry($id);
                 Response::redirect('waitlist.php');
             }
+
+            Response::redirect('waitlist.php');
         }
 
         $tab = $request->getString('tab', 'upcoming');

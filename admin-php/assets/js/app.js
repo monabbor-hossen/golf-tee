@@ -1,6 +1,11 @@
 /* ── App JavaScript ────────────────────────────────── */
 const APP_URL = document.documentElement.dataset.appUrl || '';
 
+// Prevent form resubmission dialog on browser refresh
+if (window.history.replaceState) {
+  window.history.replaceState(null, null, window.location.href);
+}
+
 // ── Toast ──────────────────────────────────────────── //
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');

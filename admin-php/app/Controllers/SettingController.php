@@ -82,7 +82,8 @@ class SettingController
                 }
 
                 $this->activityRepo->log('Settings updated', "{$tab} preferences changed", 'sand');
-                $saved = true;
+                Session::setFlash('settings_saved', '1');
+                Response::redirect('settings.php?tab=' . urlencode($tab));
             }
 
             if ($action === 'invite') {
@@ -91,9 +92,11 @@ class SettingController
                 $role  = $request->getString('role', 'Front Desk');
 
                 if ($this->authService->inviteStaff($name, $email, $role)) {
+                    Session::setFlash('staff_saved', '1');
                     Response::redirect('settings.php?tab=Staff');
                 } else {
-                    $error = 'Email already exists or invalid data.';
+                    Session::setFlash('staff_error', 'Email already exists or invalid data.');
+                    Response::redirect('settings.php?tab=Staff');
                 }
             }
 
@@ -101,9 +104,15 @@ class SettingController
                 $staffId = $request->getInt('staff_id');
                 $myId = (int)Session::getStaffId();
                 $this->authService->removeStaff($staffId, $myId);
+                Session::setFlash('staff_saved', '1');
                 Response::redirect('settings.php?tab=Staff');
             }
+
+            Response::redirect('settings.php?tab=' . urlencode($tab));
         }
+
+        $saved = Session::getFlash('settings_saved') === '1' || Session::getFlash('staff_saved') === '1' || $request->getString('saved') === '1';
+        $error = Session::getFlash('staff_error') ?? '';
 
         $settings = $this->settingRepo->getAll();
         $openDays = json_decode($settings['open_days'] ?? '[]', true) ?: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
