@@ -149,21 +149,3 @@ if (!function_exists('timeAgo')) {
         return SlotFormatter::timeAgo($datetime);
     }
 }
-
-if (!function_exists('jsonResponse')) {
-    function jsonResponse(mixed $data, int $code = 200): never {
-        \App\Core\Response::json($data, $code);
-    }
-}
-
-if (!function_exists('requestJson')) {
-    function requestJson(): array {
-        return \App\Core\Request::createFromGlobals()->json();
-    }
-}
-
-if (!function_exists('requireAuth')) {
-    function requireAuth(): void {
-        Session::requireAuth();
-    }
-}

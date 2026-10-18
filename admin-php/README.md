@@ -91,11 +91,6 @@ admin-php/
 │   │   └── main.css               # Styling tokens, grid, pills & modals
 │   └── js/
 │       └── app.js                 # AJAX handlers, notifications, drawer & modals
-├── includes/                      # Backward Compatibility Bridges
-│   ├── config.php                 # Bridges to App\Core\Config
-│   ├── db.php                     # Bridges to App\Core\Database & legacy helpers
-│   ├── header.php                 # Bridges to views/layouts/header.php
-│   └── footer.php                 # Bridges to views/layouts/footer.php
 ├── bootstrap.php                  # Application initialization & PSR-4 autoloader
 ├── index.php                      # Thin entrypoint -> DashboardController
 ├── mastergrid.php                 # Thin entrypoint -> MasterGridController

@@ -6,7 +6,6 @@ namespace App\Controllers;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
-use App\Domain\SlotFormatter;
 use App\Repositories\EventRegistrationRepository;
 use App\Repositories\EventRepository;
 use App\Repositories\MemberRepository;

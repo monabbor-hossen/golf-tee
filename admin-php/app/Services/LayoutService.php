@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Session;
-use App\Repositories\BlockedSlotRepository;
 use App\Repositories\EventRepository;
 use App\Repositories\MemberRepository;
 use App\Repositories\NotificationRepository;
