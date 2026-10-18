@@ -10,6 +10,7 @@ use App\Domain\SlotFormatter;
 use App\Repositories\EventRegistrationRepository;
 use App\Repositories\EventRepository;
 use App\Repositories\MemberRepository;
+use App\Repositories\NewsRepository;
 use App\Repositories\NotificationRepository;
 use App\Repositories\TransactionRepository;
 use App\Services\BookingService;
@@ -24,6 +25,7 @@ class ApiController
     private EventRepository $eventRepo;
     private EventRegistrationRepository $regRepo;
     private TransactionRepository $txnRepo;
+    private NewsRepository $newsRepo;
 
     public function __construct(
         ?BookingService $bookingService = null,
@@ -32,7 +34,8 @@ class ApiController
         ?MemberRepository $memberRepo = null,
         ?EventRepository $eventRepo = null,
         ?EventRegistrationRepository $regRepo = null,
-        ?TransactionRepository $txnRepo = null
+        ?TransactionRepository $txnRepo = null,
+        ?NewsRepository $newsRepo = null
     ) {
         $this->bookingService = $bookingService ?? new BookingService();
         $this->paymentService = $paymentService ?? new PaymentService();
@@ -41,6 +44,7 @@ class ApiController
         $this->eventRepo      = $eventRepo ?? new EventRepository();
         $this->regRepo        = $regRepo ?? new EventRegistrationRepository();
         $this->txnRepo        = $txnRepo ?? new TransactionRepository();
+        $this->newsRepo       = $newsRepo ?? new NewsRepository();
     }
 
     public function handleBookings(Request $request): void
@@ -164,6 +168,7 @@ class ApiController
             'Payments'    => ['url' => '../payments.php',   'icon' => '💳'],
             'Reports'     => ['url' => '../reports.php',    'icon' => '📈'],
             'Settings'    => ['url' => '../settings.php',   'icon' => '⚙️'],
+            'Club News'   => ['url' => '../news.php',       'icon' => '📢'],
         ];
 
         foreach ($pageMap as $name => $info) {
@@ -200,6 +205,18 @@ class ApiController
                 'sub'   => date('M j', strtotime($e['event_date'])) . " · {$cnt}/{$e['capacity']} registered",
                 'url'   => "../events.php?id={$e['id']}",
                 'icon'  => '🏆',
+            ];
+        }
+
+        // Search News
+        $news = $this->newsRepo->search($q, 3);
+        foreach ($news as $art) {
+            $results[] = [
+                'group' => 'Club News',
+                'title' => $art['title'],
+                'sub'   => "{$art['category']} · " . date('M j', strtotime($art['published_at'])),
+                'url'   => "../news.php?id={$art['id']}",
+                'icon'  => '📢',
             ];
         }
 

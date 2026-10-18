@@ -322,3 +322,28 @@ INSERT IGNORE INTO activity_log (id,title,description,tone) VALUES
 (3,'Cancellation','Thanh Nguyen · Yesterday 10:00 AM · refunded $170','danger'),
 (4,'Member pending','Sofia Kim requested Standard membership','sand'),
 (5,'Payment received','$340 · James Carter','forest');
+
+-- --------------------------------------------------------
+-- Club News & Announcements
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS club_news (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  category VARCHAR(50) NOT NULL DEFAULT 'General',
+  badge_text VARCHAR(50) NULL,
+  summary VARCHAR(255) NOT NULL,
+  content TEXT NULL,
+  image_url VARCHAR(500) NULL,
+  is_published TINYINT(1) NOT NULL DEFAULT 1,
+  published_at DATE NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_published (is_published, published_at),
+  INDEX idx_category (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO club_news (id, title, category, badge_text, summary, content, image_url, is_published, published_at) VALUES
+(1, 'Autumn Member Classic — registration is open', 'Event', 'Event · Nov 9', 'Shotgun start 8 AM · 72 spots left', 'The annual Autumn Member Classic is open for registration. 18 holes of championship stroke play followed by a harvest dinner and awards at the clubhouse. Register your team early before capacity is reached.', 'https://images.unsplash.com/photo-1761141987961-ed96a841fe21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE()),
+(2, 'Aerification Schedule for Front 9 Fairways', 'Course Update', 'Course Update', 'Scheduled for next Tuesday 6 AM - 12 PM', 'Our greenskeeping crew will be conducting seasonal aerification on Holes 1 through 9 next Tuesday morning. Carts will be restricted to the cart path during this maintenance window. The back 9 remains fully operational.', 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE()),
+(3, 'New Pro Shop Arrivals: Titleist & Callaway Gear', 'Pro Shop', 'Pro Shop · 15% Off', 'Exclusive discount for Gold & Silver tier members', 'Check out the newly stocked premium drivers, bags, and golf apparel in the Pro Shop. Gold and Silver members enjoy an automatic 15% discount at checkout through the end of the month.', 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE());
+

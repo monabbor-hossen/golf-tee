@@ -68,6 +68,10 @@ $appUrl = Config::get('APP_URL');
             <span class="badge"><?= $layout['eventCount'] ?></span>
           <?php endif; ?>
         </a>
+        <a href="news.php" class="nav-item <?= $currentPage==='news'?'active':'' ?>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m4 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6m-6 4h10"/></svg>
+          Club News
+        </a>
       </div>
       <div class="nav-group">
         <p class="nav-label">Management</p>
@@ -139,6 +143,10 @@ $appUrl = Config::get('APP_URL');
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
           Events
           <?php if ($layout['eventCount'] > 0): ?><span class="badge"><?= $layout['eventCount'] ?></span><?php endif; ?>
+        </a>
+        <a href="news.php" class="nav-item <?= $currentPage==='news'?'active':'' ?>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m4 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6m-6 4h10"/></svg>
+          Club News
         </a>
       </div>
       <div class="nav-group">
