@@ -130,7 +130,7 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
     </div>
     <?php endforeach; ?>
     </div>
-    <div style="display:flex;gap:16px;margin-top:12px;font-size:.75rem;color:#6b7280">
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:.75rem;color:#6b7280">
       <span style="display:flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:2px;background:rgba(30,86,49,.3);display:inline-block"></i>Completed</span>
       <span style="display:flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:2px;background:var(--forest);display:inline-block"></i>Now</span>
       <span style="display:flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:2px;background:var(--sand);display:inline-block"></i>Booked ahead</span>

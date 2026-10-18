@@ -31,10 +31,10 @@ $appUrl = Config::get('APP_URL');
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <span class="logo-icon">⛳</span>
-      <span class="logo-text">
+      <div class="logo-text">
         <strong><?= htmlspecialchars($courseName) ?></strong>
         <small>Course admin</small>
-      </span>
+      </div>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-group">
@@ -104,10 +104,10 @@ $appUrl = Config::get('APP_URL');
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)">
       <div class="sidebar-logo" style="margin:0">
         <span class="logo-icon">⛳</span>
-        <span class="logo-text">
+        <div class="logo-text">
           <strong><?= htmlspecialchars($courseName) ?></strong>
           <small>Course admin</small>
-        </span>
+        </div>
       </div>
       <button class="drawer-close" onclick="closeDrawer()" aria-label="Close menu">✕</button>
     </div>
@@ -191,7 +191,7 @@ $appUrl = Config::get('APP_URL');
       <!-- Global Search -->
       <div class="search-wrap" id="searchWrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3"/></svg>
-        <input type="text" id="globalSearch" placeholder="Search members, tee times, events…" autocomplete="off"
+        <input type="text" id="globalSearch" placeholder="Search…" autocomplete="off"
                class="search-input" onkeyup="handleGlobalSearch(this.value)" />
         <div id="searchResults" class="search-dropdown hidden"></div>
       </div>
@@ -242,12 +242,13 @@ $appUrl = Config::get('APP_URL');
         <div class="divider-v hide-sm"></div>
         <!-- Profile -->
         <div class="profile-wrap" id="profileWrap">
-          <button class="profile-btn" onclick="toggleProfile()">
+          <button class="profile-btn" onclick="toggleProfile()" aria-label="User menu">
             <span class="avatar"><?= strtoupper(substr($layout['staffName'] ?: 'A', 0, 2)) ?></span>
-            <span class="hide-sm" style="text-align:left;line-height:1.2">
-              <span style="display:block;font-weight:700;font-size:.875rem"><?= htmlspecialchars($layout['staffName'] ?: 'Admin') ?></span>
-              <span style="display:block;font-size:.7rem;color:#9ca3af"><?= htmlspecialchars($layout['staffRole'] ?: 'Owner') ?></span>
-            </span>
+            <div class="profile-info">
+              <span class="profile-name"><?= htmlspecialchars($layout['staffName'] ?: 'Admin') ?></span>
+              <span class="profile-role"><?= htmlspecialchars($layout['staffRole'] ?: 'Owner') ?></span>
+            </div>
+            <svg class="profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="profile-dropdown hidden" id="profileDropdown">
             <a href="settings.php" class="dropdown-item">⚙️ Settings</a>

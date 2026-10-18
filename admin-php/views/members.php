@@ -111,8 +111,8 @@ $statusCls = ['Active' => 'pill-green', 'Suspended' => 'pill-red', 'Pending' => 
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <div class="avatar-lg"><?= strtoupper(substr($selectedMember['name'], 0, 2)) ?></div>
         <div>
-          <span class="pill <?= $tierCls[$selectedMember['tier']] ?? '' ?>"><?= $selectedMember['tier'] ?></span>
-          <span class="pill <?= $statusCls[$selectedMember['status']] ?? '' ?>" style="margin-left:4px"><?= $selectedMember['status'] ?></span>
+          <span class="pill <?= $tierCls[$selectedMember['tier']] ?? 'pill-sand' ?>"><?= $selectedMember['tier'] ?></span>
+          <span class="pill <?= $statusCls[$selectedMember['status']] ?? 'pill-gray' ?>" style="margin-left:4px"><?= $selectedMember['status'] ?></span>
           <p style="font-size:.75rem;color:#6b7280;margin-top:4px">Joined <?= $selectedMember['joined'] ?></p>
         </div>
       </div>

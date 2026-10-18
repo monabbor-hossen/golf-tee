@@ -105,8 +105,10 @@ async function handleGlobalSearch(q) {
         }
         html += `<div class="search-result" onclick="window.location.href='${r.url}'">
           <span class="search-result-icon">${r.icon}</span>
-          <span><span class="search-result-title">${r.title}</span><br>
-          <span class="search-result-sub">${r.sub}</span></span>
+          <div class="search-result-info">
+            <span class="search-result-title">${r.title}</span>
+            <span class="search-result-sub">${r.sub}</span>
+          </div>
         </div>`;
       });
       res.innerHTML = html;

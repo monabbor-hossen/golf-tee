@@ -102,7 +102,7 @@ $slots   = range(420, 1070, 30);
         <?= csrfField() ?>
         <input type="hidden" name="action" value="register">
         <input type="hidden" name="event_id" value="<?= $selectedEvent['id'] ?>">
-        <input name="name" class="input" style="height:32px;font-size:.8rem" placeholder="Add name…" required list="event-member-names"/>
+        <input name="name" class="input" style="height:32px;font-size:.8rem;flex:1;min-width:0" placeholder="Add name…" required list="event-member-names"/>
         <datalist id="event-member-names">
           <?php foreach ($allMemberNames as $m): ?>
             <option value="<?= htmlspecialchars($m['name']) ?>">
