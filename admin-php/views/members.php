@@ -21,9 +21,9 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
     $url = '?' . http_build_query($params);
 
     // SVG arrows (pure vector, no text icons)
-    $svgAsc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest)"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
-    $svgDesc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest)"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
-    $svgNeutral = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>';
+    $svgAsc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest);display:inline-block;vertical-align:middle"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+    $svgDesc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" stroke-linecap="round" stroke-linejoin="round" style="color:var(--forest);display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+    $svgNeutral = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;display:inline-block;vertical-align:middle"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>';
 
     $icon = $svgNeutral;
     if ($isActive) {
@@ -83,10 +83,12 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
     <?php endforeach; ?>
   </div>
   <div class="filter-select-wrap">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"/>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>
+    <span class="select-icon-left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+    </span>
     <select onchange="setFilter('spend', this.value)" title="Filter by spend">
       <option value="All" <?= ($spend ?? 'All') === 'All' ? 'selected' : '' ?>>All Spend</option>
       <option value="5000+" <?= ($spend ?? 'All') === '5000+' ? 'selected' : '' ?>>Top Spend ($5k+)</option>
@@ -94,11 +96,18 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
       <option value="1000-2000" <?= ($spend ?? 'All') === '1000-2000' ? 'selected' : '' ?>>$1,000 – $2,000</option>
       <option value="under1000" <?= ($spend ?? 'All') === 'under1000' ? 'selected' : '' ?>>Under $1,000</option>
     </select>
+    <span class="select-icon-right">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </span>
   </div>
   <div class="filter-select-wrap">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 6h18M6 12h12m-9 6h6"/>
-    </svg>
+    <span class="select-icon-left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18M6 12h12m-9 6h6"/>
+      </svg>
+    </span>
     <select onchange="applySort(this.value)" title="Sort members order">
       <option value="spend:desc" <?= $sort === 'spend' && $dir === 'desc' ? 'selected' : '' ?>>Spend: High to Low (Top-to-Bottom)</option>
       <option value="spend:asc" <?= $sort === 'spend' && $dir === 'asc' ? 'selected' : '' ?>>Spend: Low to High</option>
@@ -111,6 +120,11 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
       <option value="rounds:desc" <?= $sort === 'rounds' && $dir === 'desc' ? 'selected' : '' ?>>Rounds: High to Low</option>
       <option value="hcp:asc" <?= $sort === 'hcp' && $dir === 'asc' ? 'selected' : '' ?>>HCP: Low to High</option>
     </select>
+    <span class="select-icon-right">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </span>
   </div>
   <?php if ($query !== '' || $tier !== 'All' || $status !== 'All' || ($spend ?? 'All') !== 'All' || $sort !== 'name' || $dir !== 'asc'): ?>
   <a href="members.php" class="btn btn-ghost btn-sm" style="height:38px;padding:0 12px;font-size:0.75rem;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px" title="Reset all filters and sorting">
