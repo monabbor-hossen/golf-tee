@@ -149,3 +149,17 @@ if (!function_exists('timeAgo')) {
         return SlotFormatter::timeAgo($datetime);
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Runtime Timezone Initialization
+// ─────────────────────────────────────────────────────────────
+try {
+    $configuredTz = getSetting('timezone', Config::get('APP_TIMEZONE', 'America/New_York'));
+    if ($configuredTz !== '' && in_array($configuredTz, DateTimeZone::listIdentifiers(), true)) {
+        date_default_timezone_set($configuredTz);
+    } else {
+        date_default_timezone_set('America/New_York');
+    }
+} catch (\Throwable) {
+    date_default_timezone_set('America/New_York');
+}

@@ -57,8 +57,18 @@ if ($saved): ?>
     <div class="field-group">
       <label class="field-label">Timezone</label>
       <select name="timezone" class="input select-field">
-        <?php foreach (['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'UTC'] as $tz): ?>
-        <option value="<?= $tz ?>" <?= ($settings['timezone'] ?? '') === $tz ? 'selected' : '' ?>><?= $tz ?></option>
+        <?php
+        $currentTimezone = $settings['timezone'] ?? 'America/New_York';
+        $tzGroups = $timezones ?? \App\Domain\TimezoneHelper::getAllGrouped();
+        foreach ($tzGroups as $region => $groupList):
+        ?>
+        <optgroup label="<?= htmlspecialchars($region) ?>">
+          <?php foreach ($groupList as $tzValue => $tzLabel): ?>
+          <option value="<?= htmlspecialchars($tzValue) ?>" <?= $currentTimezone === $tzValue ? 'selected' : '' ?>>
+            <?= htmlspecialchars($tzLabel) ?>
+          </option>
+          <?php endforeach; ?>
+        </optgroup>
         <?php endforeach; ?>
       </select>
     </div>
