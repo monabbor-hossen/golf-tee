@@ -82,7 +82,7 @@ class PaymentService
             'ref'         => null,
         ]);
 
-        $this->activityRepo->log('Payment recorded', "{$name} · \${$amount}", 'forest');
+        $this->activityRepo->log('Payment recorded', "{$name} · " . currencySymbol() . "{$amount}", 'forest');
         return $txnId;
     }
 
@@ -95,7 +95,7 @@ class PaymentService
 
         $this->txnRepo->updateStatus($id, 'Refunded');
         $amountStr = number_format((float)($txn['amount'] ?? 0));
-        $this->activityRepo->log('Refund issued', "{$txn['name']} · \${$amountStr}", 'danger');
+        $this->activityRepo->log('Refund issued', "{$txn['name']} · " . currencySymbol() . "{$amountStr}", 'danger');
         return true;
     }
 

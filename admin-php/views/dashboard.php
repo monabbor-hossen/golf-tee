@@ -48,7 +48,7 @@ $staffName = htmlspecialchars(\App\Core\Session::getStaffName());
 <div class="stat-grid">
   <div class="stat-card highlight">
     <p class="stat-label">Today's Revenue</p>
-    <p class="stat-value">$<?= number_format($totalRevenue) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format($totalRevenue) ?></p>
     <p class="stat-sub"><?= $revDelta >= 0 ? '+' : '' ?><?= $revDelta ?>% vs last <?= $dayName ?></p>
   </div>
   <div class="stat-card">

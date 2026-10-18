@@ -225,7 +225,7 @@ class ApiController
             $results[] = [
                 'group' => 'Payments',
                 'title' => $t['id'],
-                'sub'   => "{$t['name']} · \${$t['amount']} · {$t['status']}",
+                'sub'   => "{$t['name']} · " . currencySymbol() . "{$t['amount']} · {$t['status']}",
                 'url'   => "../payments.php?txnId={$t['id']}",
                 'icon'  => '💳',
             ];

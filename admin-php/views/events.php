@@ -45,7 +45,7 @@ $slots   = range(420, 1070, 30);
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <span class="pill <?= $e['is_open'] ? 'pill-green' : 'pill-gray' ?>"><?= $e['is_open'] ? 'Open' : 'Closed' ?></span>
-          <span style="font-size:.75rem;color:#6b7280">$<?= number_format((float)$e['fee']) ?> entry</span>
+          <span style="font-size:.75rem;color:#6b7280"><?= currencySymbol() ?><?= number_format((float)$e['fee']) ?> entry</span>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
@@ -101,8 +101,8 @@ $slots   = range(420, 1070, 30);
       <div class="info-row"><span class="info-label">Format</span><span class="info-val"><?= htmlspecialchars($selectedEvent['format']) ?></span></div>
       <div class="info-row"><span class="info-label">Duration</span><span class="info-val"><?= $selectedEvent['hours'] ?> hours</span></div>
       <div class="info-row"><span class="info-label">Capacity</span><span class="info-val"><?= $selectedEvent['reg_count'] ?>/<?= $selectedEvent['capacity'] ?></span></div>
-      <div class="info-row"><span class="info-label">Entry fee</span><span class="info-val">$<?= number_format((float)$selectedEvent['fee']) ?></span></div>
-      <div class="info-row"><span class="info-label">Revenue</span><span class="info-val">$<?= number_format($selectedEvent['reg_count'] * (float)$selectedEvent['fee']) ?></span></div>
+      <div class="info-row"><span class="info-label">Entry fee</span><span class="info-val"><?= currencySymbol() ?><?= number_format((float)$selectedEvent['fee']) ?></span></div>
+      <div class="info-row"><span class="info-label">Revenue</span><span class="info-val"><?= currencySymbol() ?><?= number_format($selectedEvent['reg_count'] * (float)$selectedEvent['fee']) ?></span></div>
 
       <!-- Progress -->
       <div class="event-fill" style="margin-top:12px;margin-bottom:4px">
@@ -198,7 +198,7 @@ $slots   = range(420, 1070, 30);
           <div class="field-group"><label class="field-label">Capacity</label><input type="number" name="capacity" class="input" value="48" min="1"/></div>
           <div class="field-group">
             <label class="field-label">Entry fee</label>
-            <div class="price-prefix"><span>$</span><input type="number" name="fee" min="0" class="input" value="75" style="padding-left:22px"/></div>
+            <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="fee" min="0" class="input" value="75" style="padding-left:22px"/></div>
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:10px;font-size:.875rem;font-weight:600">

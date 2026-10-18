@@ -23,7 +23,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
 <div class="stat-grid" style="margin-bottom:16px">
   <div class="stat-card highlight">
     <p class="stat-label">Total Revenue</p>
-    <p class="stat-value">$<?= number_format((float)$totalRev) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format((float)$totalRev) ?></p>
     <p class="stat-sub">Last <?= $range ?> days · paid only</p>
   </div>
   <div class="stat-card">
@@ -38,7 +38,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
   </div>
   <div class="stat-card">
     <p class="stat-label">Avg per Booking</p>
-    <p class="stat-value">$<?= $totalBookings > 0 ? number_format((float)($totalRev / $totalBookings)) : '0' ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= $totalBookings > 0 ? number_format((float)($totalRev / $totalBookings)) : '0' ?></p>
     <p class="stat-sub">Green fees + add-ons</p>
   </div>
 </div>
@@ -59,7 +59,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
         $pct = $rev > 0 ? round($rev / $maxRev * 100) : 0;
         $isToday = $ds === $today;
       ?>
-      <div title="$<?= number_format($rev) ?> on <?= date('M j', strtotime($ds)) ?>"
+      <div title="<?= currencySymbol() ?><?= number_format($rev) ?> on <?= date('M j', strtotime($ds)) ?>"
            style="flex:1;min-width:6px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
         <div style="width:100%;border-radius:3px 3px 0 0;background:<?= $isToday ? 'var(--forest)' : 'rgba(30,86,49,.3)' ?>;height:<?= $pct ?>%;min-height:<?= $rev > 0 ? 2 : 0 ?>px"></div>
       </div>
@@ -79,7 +79,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
           <i style="width:8px;height:8px;border-radius:2px;background:<?= $typeCls[$r['type']] ?? '#9ca3af' ?>;display:inline-block"></i>
           <?= htmlspecialchars($r['type']) ?>
         </span>
-        <span style="font-weight:700">$<?= number_format((float)$r['total']) ?> <span style="color:#9ca3af;font-weight:400">(<?= $pct ?>%)</span></span>
+        <span style="font-weight:700"><?= currencySymbol() ?><?= number_format((float)$r['total']) ?> <span style="color:#9ca3af;font-weight:400">(<?= $pct ?>%)</span></span>
       </div>
       <div class="stat-bar"><div class="stat-bar-fill" style="width:<?= $pct ?>%;background:<?= $typeCls[$r['type']] ?? 'var(--forest)' ?>"></div></div>
     </div>
@@ -120,7 +120,7 @@ $typeCls = ['Green fee' => '#1E5631', 'Pro shop' => '#D4C4A8', 'Food & bev' => '
         <p style="font-size:.875rem;font-weight:600"><?= htmlspecialchars($m['name']) ?></p>
         <p style="font-size:.75rem;color:#9ca3af"><?= $m['rounds'] ?> rounds</p>
       </div>
-      <p style="font-weight:700;font-size:.9rem">$<?= number_format((float)$m['spend']) ?></p>
+      <p style="font-weight:700;font-size:.9rem"><?= currencySymbol() ?><?= number_format((float)$m['spend']) ?></p>
     </div>
     <?php endforeach; ?>
     <?php if (empty($topSpend)): ?>

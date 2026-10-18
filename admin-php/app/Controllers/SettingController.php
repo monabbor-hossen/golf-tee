@@ -7,6 +7,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Core\View;
+use App\Domain\CurrencyHelper;
 use App\Domain\TimezoneHelper;
 use App\Repositories\ActivityRepository;
 use App\Repositories\SettingRepository;
@@ -119,8 +120,9 @@ class SettingController
         $days     = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         $staff    = $this->staffRepo->getAll();
         $tabs     = ['Course', 'Tee Sheet', 'Pricing', 'Feature flags', 'Notifications', 'Staff'];
-        $slots     = range(420, 1070, 30);
-        $timezones = TimezoneHelper::getAllGrouped();
+        $slots      = range(420, 1070, 30);
+        $timezones  = TimezoneHelper::getAllGrouped();
+        $currencies = CurrencyHelper::getAll();
 
         View::render('settings', [
             'currentPage' => 'settings',
@@ -134,6 +136,7 @@ class SettingController
             'tabs'        => $tabs,
             'slots'       => $slots,
             'timezones'   => $timezones,
+            'currencies'  => $currencies,
         ]);
     }
 }

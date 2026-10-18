@@ -36,22 +36,22 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
 <div class="stat-grid" style="margin-bottom:16px">
   <div class="stat-card highlight">
     <p class="stat-label">Paid</p>
-    <p class="stat-value">$<?= number_format((float)($statMap['Paid']['total'] ?? 0)) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format((float)($statMap['Paid']['total'] ?? 0)) ?></p>
     <p class="stat-sub"><?= $statMap['Paid']['cnt'] ?? 0 ?> transactions</p>
   </div>
   <div class="stat-card">
     <p class="stat-label">Pending</p>
-    <p class="stat-value">$<?= number_format((float)($statMap['Pending']['total'] ?? 0)) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format((float)($statMap['Pending']['total'] ?? 0)) ?></p>
     <p class="stat-sub amber"><?= $statMap['Pending']['cnt'] ?? 0 ?> transactions</p>
   </div>
   <div class="stat-card">
     <p class="stat-label">Refunded</p>
-    <p class="stat-value">$<?= number_format((float)($statMap['Refunded']['total'] ?? 0)) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format((float)($statMap['Refunded']['total'] ?? 0)) ?></p>
     <p class="stat-sub red"><?= $statMap['Refunded']['cnt'] ?? 0 ?> transactions</p>
   </div>
   <div class="stat-card">
     <p class="stat-label">Net Revenue</p>
-    <p class="stat-value">$<?= number_format((float)(($statMap['Paid']['total'] ?? 0) - ($statMap['Refunded']['total'] ?? 0))) ?></p>
+    <p class="stat-value"><?= currencySymbol() ?><?= number_format((float)(($statMap['Paid']['total'] ?? 0) - ($statMap['Refunded']['total'] ?? 0))) ?></p>
     <p class="stat-sub"><?= count($rows) ?> total rows</p>
   </div>
 </div>
@@ -112,7 +112,7 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
               </span>
             </td>
             <td style="font-size:.8rem;color:#6b7280"><?= htmlspecialchars($r['method']) ?></td>
-            <td style="font-weight:700">$<?= number_format((float)$r['amount']) ?></td>
+            <td style="font-weight:700"><?= currencySymbol() ?><?= number_format((float)$r['amount']) ?></td>
             <td><span class="pill <?= $statusPill[$r['status']] ?? 'pill-gray' ?>"><?= $r['status'] ?></span></td>
           </tr>
           <?php endforeach; ?>
@@ -146,7 +146,7 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
     <div class="panel-body">
       <div class="info-row"><span class="info-label">Customer</span><span class="info-val"><?= htmlspecialchars($selectedTxn['name']) ?></span></div>
       <div class="info-row"><span class="info-label">Amount</span><span class="info-val" style="font-size:1.1rem;font-weight:900;color:<?= $selectedTxn['status'] === 'Refunded' ? 'var(--danger)' : '' ?>">
-        <?= $selectedTxn['status'] === 'Refunded' ? '−' : '' ?>$<?= number_format((float)$selectedTxn['amount']) ?></span></div>
+        <?= $selectedTxn['status'] === 'Refunded' ? '−' : '' ?><?= currencySymbol() ?><?= number_format((float)$selectedTxn['amount']) ?></span></div>
       <div class="info-row"><span class="info-label">Date</span><span class="info-val"><?= date('M j, Y', strtotime($selectedTxn['txn_date'])) ?></span></div>
       <div class="info-row"><span class="info-label">Time</span><span class="info-val"><?= SlotFormatter::format((int)$selectedTxn['txn_time']) ?></span></div>
       <div class="info-row"><span class="info-label">Method</span><span class="info-val"><?= htmlspecialchars($selectedTxn['method']) ?></span></div>
@@ -155,7 +155,7 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
       <p style="font-size:.8rem;margin-top:4px"><?= htmlspecialchars($selectedTxn['description']) ?></p>
 
       <?php if ($selectedTxn['status'] === 'Paid'): ?>
-      <form method="post" action="api/payments.php" style="margin-top:16px" onsubmit="return confirm('Issue refund for $<?= number_format((float)$selectedTxn['amount']) ?>?')">
+      <form method="post" action="api/payments.php" style="margin-top:16px" onsubmit="return confirm('Issue refund for <?= currencySymbol() ?><?= number_format((float)$selectedTxn['amount']) ?>?')">
         <?= csrfField() ?>
         <input type="hidden" name="action" value="refund">
         <input type="hidden" name="id" value="<?= htmlspecialchars($selectedTxn['id']) ?>">
@@ -227,7 +227,7 @@ $types      = ['Green fee', 'Pro shop', 'Food & bev', 'Event', 'Membership'];
         <div class="field-group"><label class="field-label">Description</label><input name="description" class="input" placeholder="e.g. Golf glove, size M"/></div>
         <div class="field-group">
           <label class="field-label">Amount</label>
-          <div class="price-prefix"><span>$</span><input type="number" name="amount" min="0" step="0.01" class="input" placeholder="0.00" style="padding-left:22px"/></div>
+          <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="amount" min="0" step="0.01" class="input" placeholder="0.00" style="padding-left:22px"/></div>
         </div>
       </div>
       <div class="modal-footer">

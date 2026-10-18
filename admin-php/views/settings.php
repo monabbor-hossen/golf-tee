@@ -79,8 +79,14 @@ if ($saved): ?>
     <div class="field-group">
       <label class="field-label">Currency</label>
       <select name="currency" class="input select-field">
-        <?php foreach (['USD', 'EUR', 'GBP', 'CAD', 'AUD'] as $c): ?>
-        <option <?= ($settings['currency'] ?? 'USD') === $c ? 'selected' : '' ?>><?= $c ?></option>
+        <?php
+        $currList = $currencies ?? \App\Domain\CurrencyHelper::getAll();
+        $selectedCurrency = strtoupper(trim($settings['currency'] ?? 'USD'));
+        foreach ($currList as $code => $info):
+        ?>
+        <option value="<?= htmlspecialchars($code) ?>" <?= $selectedCurrency === $code ? 'selected' : '' ?>>
+          <?= htmlspecialchars($code) ?> — <?= htmlspecialchars($info['name']) ?> (<?= htmlspecialchars($info['symbol']) ?>)
+        </option>
         <?php endforeach; ?>
       </select>
     </div>
@@ -145,33 +151,33 @@ if ($saved): ?>
       <p class="field-label" style="margin-bottom:8px">Weekday</p>
       <div class="price-cell">
         <label class="field-label" style="font-size:.75rem">18 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_weekday_18" class="input" value="<?= $settings['price_weekday_18'] ?? '85' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_weekday_18" class="input" value="<?= $settings['price_weekday_18'] ?? '85' ?>" style="padding-left:22px"/></div>
       </div>
       <div class="price-cell" style="margin-top:10px">
         <label class="field-label" style="font-size:.75rem">9 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_weekday_9" class="input" value="<?= $settings['price_weekday_9'] ?? '48' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_weekday_9" class="input" value="<?= $settings['price_weekday_9'] ?? '48' ?>" style="padding-left:22px"/></div>
       </div>
     </div>
     <div>
       <p class="field-label" style="margin-bottom:8px">Weekend</p>
       <div class="price-cell">
         <label class="field-label" style="font-size:.75rem">18 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_weekend_18" class="input" value="<?= $settings['price_weekend_18'] ?? '110' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_weekend_18" class="input" value="<?= $settings['price_weekend_18'] ?? '110' ?>" style="padding-left:22px"/></div>
       </div>
       <div class="price-cell" style="margin-top:10px">
         <label class="field-label" style="font-size:.75rem">9 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_weekend_9" class="input" value="<?= $settings['price_weekend_9'] ?? '62' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_weekend_9" class="input" value="<?= $settings['price_weekend_9'] ?? '62' ?>" style="padding-left:22px"/></div>
       </div>
     </div>
     <div>
       <p class="field-label" style="margin-bottom:8px">Twilight</p>
       <div class="price-cell">
         <label class="field-label" style="font-size:.75rem">18 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_twilight_18" class="input" value="<?= $settings['price_twilight_18'] ?? '55' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_twilight_18" class="input" value="<?= $settings['price_twilight_18'] ?? '55' ?>" style="padding-left:22px"/></div>
       </div>
       <div class="price-cell" style="margin-top:10px">
         <label class="field-label" style="font-size:.75rem">9 holes</label>
-        <div class="price-prefix"><span>$</span><input type="number" name="price_twilight_9" class="input" value="<?= $settings['price_twilight_9'] ?? '35' ?>" style="padding-left:22px"/></div>
+        <div class="price-prefix"><span><?= currencySymbol() ?></span><input type="number" name="price_twilight_9" class="input" value="<?= $settings['price_twilight_9'] ?? '35' ?>" style="padding-left:22px"/></div>
       </div>
     </div>
   </div>

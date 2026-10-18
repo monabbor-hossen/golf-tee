@@ -150,6 +150,18 @@ if (!function_exists('timeAgo')) {
     }
 }
 
+if (!function_exists('currencySymbol')) {
+    function currencySymbol(?string $code = null): string {
+        return \App\Domain\CurrencyHelper::getSymbol($code);
+    }
+}
+
+if (!function_exists('formatMoney')) {
+    function formatMoney(float|int|string $amount, int $decimals = 0, ?string $code = null): string {
+        return \App\Domain\CurrencyHelper::format($amount, $decimals, $code);
+    }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Runtime Timezone Initialization
 // ─────────────────────────────────────────────────────────────

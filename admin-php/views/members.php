@@ -91,10 +91,10 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
     </span>
     <select onchange="setFilter('spend', this.value)" title="Filter by spend">
       <option value="All" <?= ($spend ?? 'All') === 'All' ? 'selected' : '' ?>>All Spend</option>
-      <option value="5000+" <?= ($spend ?? 'All') === '5000+' ? 'selected' : '' ?>>Top Spend ($5k+)</option>
-      <option value="2000-5000" <?= ($spend ?? 'All') === '2000-5000' ? 'selected' : '' ?>>$2,000 – $5,000</option>
-      <option value="1000-2000" <?= ($spend ?? 'All') === '1000-2000' ? 'selected' : '' ?>>$1,000 – $2,000</option>
-      <option value="under1000" <?= ($spend ?? 'All') === 'under1000' ? 'selected' : '' ?>>Under $1,000</option>
+      <option value="5000+" <?= ($spend ?? 'All') === '5000+' ? 'selected' : '' ?>>Top Spend (<?= currencySymbol() ?>5k+)</option>
+      <option value="2000-5000" <?= ($spend ?? 'All') === '2000-5000' ? 'selected' : '' ?>><?= currencySymbol() ?>2,000 – <?= currencySymbol() ?>5,000</option>
+      <option value="1000-2000" <?= ($spend ?? 'All') === '1000-2000' ? 'selected' : '' ?>><?= currencySymbol() ?>1,000 – <?= currencySymbol() ?>2,000</option>
+      <option value="under1000" <?= ($spend ?? 'All') === 'under1000' ? 'selected' : '' ?>>Under <?= currencySymbol() ?>1,000</option>
     </select>
     <span class="select-icon-right">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
@@ -171,7 +171,7 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
             <td><span class="pill <?= $statusCls[$m['status']] ?? 'pill-gray' ?>"><?= $m['status'] ?></span></td>
             <td><?= $m['hcp'] ?></td>
             <td><?= $m['rounds'] ?></td>
-            <td>$<?= number_format((float)$m['spend']) ?></td>
+            <td><?= currencySymbol() ?><?= number_format((float)$m['spend']) ?></td>
             <td style="color:#6b7280"><?= htmlspecialchars($m['last_play'] ?: '—') ?></td>
           </tr>
           <?php endforeach; ?>
@@ -222,7 +222,7 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
       <div class="info-row"><span class="info-label">Phone</span><span class="info-val"><?= htmlspecialchars($selectedMember['phone'] ?: '—') ?></span></div>
       <div class="info-row"><span class="info-label">Handicap</span><span class="info-val"><?= $selectedMember['hcp'] ?></span></div>
       <div class="info-row"><span class="info-label">Rounds played</span><span class="info-val"><?= $selectedMember['rounds'] ?></span></div>
-      <div class="info-row"><span class="info-label">Total spend</span><span class="info-val">$<?= number_format((float)$selectedMember['spend']) ?></span></div>
+      <div class="info-row"><span class="info-label">Total spend</span><span class="info-val"><?= currencySymbol() ?><?= number_format((float)$selectedMember['spend']) ?></span></div>
       <div class="info-row"><span class="info-label">Last round</span><span class="info-val"><?= htmlspecialchars($selectedMember['last_play'] ?: '—') ?></span></div>
       <?php if (!empty($selectedMember['next_tee'])): ?>
       <div class="info-row"><span class="info-label">Next tee time</span><span class="info-val" style="font-size:.75rem"><?= htmlspecialchars($selectedMember['next_tee']) ?></span></div>
