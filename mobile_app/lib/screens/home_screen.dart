@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/colors.dart';
 import '../constants/strings.dart';
+import '../models/course_condition.dart';
 import '../providers/app_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/course_provider.dart';
@@ -362,35 +363,42 @@ class HomeScreen extends ConsumerWidget {
           if (waitlistReady != null) const SizedBox(height: 20),
 
           // ── Section: Course Conditions ────────────────────
-          _buildSectionHeader('Course conditions', action: 'Updated 7:45 AM'),
+          _buildSectionHeader(
+            'Course conditions',
+            action: condition.updatedAt,
+            onActionTap: () => _showConditionsSheet(context, condition, ref),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                _buildConditionBox(
-                  icon: Icons.wb_sunny_rounded,
-                  val: condition.weather,
-                  label: condition.weatherDesc,
-                ),
-                const SizedBox(width: 8),
-                _buildConditionBox(
-                  icon: Icons.air_rounded,
-                  val: condition.wind,
-                  label: condition.windDesc,
-                ),
-                const SizedBox(width: 8),
-                _buildConditionBox(
-                  icon: Icons.speed_rounded,
-                  val: condition.greenSpeed,
-                  label: condition.speedDesc,
-                ),
-                const SizedBox(width: 8),
-                _buildConditionBox(
-                  icon: Icons.golf_course_rounded,
-                  val: condition.carts,
-                  label: condition.cartsDesc,
-                ),
-              ],
+            child: GestureDetector(
+              onTap: () => _showConditionsSheet(context, condition, ref),
+              child: Row(
+                children: [
+                  _buildConditionBox(
+                    icon: _getWeatherIcon(condition.weatherDesc),
+                    val: condition.weather,
+                    label: condition.weatherDesc,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildConditionBox(
+                    icon: Icons.air_rounded,
+                    val: condition.wind,
+                    label: condition.windDesc,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildConditionBox(
+                    icon: Icons.speed_rounded,
+                    val: condition.greenSpeed,
+                    label: condition.speedDesc,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildConditionBox(
+                    icon: Icons.golf_course_rounded,
+                    val: condition.carts,
+                    label: condition.cartsDesc,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 22),
@@ -609,7 +617,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, {String? action}) {
+  Widget _buildSectionHeader(String title, {String? action, VoidCallback? onActionTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
@@ -625,14 +633,361 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           if (action != null)
-            Text(
-              action,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.forest,
+            GestureDetector(
+              onTap: onActionTap,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    action,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.forest,
+                    ),
+                  ),
+                  if (onActionTap != null) ...[
+                    const SizedBox(width: 3),
+                    const Icon(Icons.info_outline_rounded, size: 13, color: AppColors.forest),
+                  ],
+                ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getWeatherIcon(String desc) {
+    final d = desc.toLowerCase();
+    if (d.contains('sun') || d.contains('clear')) return Icons.wb_sunny_rounded;
+    if (d.contains('cloud') || d.contains('overcast')) return Icons.cloud_rounded;
+    if (d.contains('rain') || d.contains('shower') || d.contains('drizzle')) return Icons.grain_rounded;
+    if (d.contains('snow') || d.contains('flurr') || d.contains('ice')) return Icons.ac_unit_rounded;
+    if (d.contains('thunder') || d.contains('storm')) return Icons.flash_on_rounded;
+    return Icons.wb_sunny_rounded;
+  }
+
+  void _showConditionsSheet(
+      BuildContext context, CourseCondition condition, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded,
+                              size: 16, color: AppColors.forest),
+                          const SizedBox(width: 4),
+                          Text(
+                            condition.location,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textMain,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (condition.gpsFormatted.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(Icons.gps_fixed_rounded,
+                                size: 12, color: Color(0xFF16A34A)),
+                            const SizedBox(width: 4),
+                            Text(
+                              condition.gpsFormatted,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF15803D),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Live course conditions & weather',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.forest.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF16A34A),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        condition.isGps ? 'GPS Feed' : 'Live Feed',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.forest,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Main Conditions 2x2 Cards
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailCard(
+                    icon: _getWeatherIcon(condition.weatherDesc),
+                    title: condition.weather,
+                    subtitle: condition.weatherDesc,
+                    note: 'Humidity: ${condition.humidity}',
+                    accentColor: const Color(0xFFD97706),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildDetailCard(
+                    icon: Icons.air_rounded,
+                    title: condition.wind,
+                    subtitle: condition.windDesc,
+                    note: 'Club recommendation: standard',
+                    accentColor: const Color(0xFF0284C7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailCard(
+                    icon: Icons.speed_rounded,
+                    title: '${condition.greenSpeed} Stimpmeter',
+                    subtitle: condition.speedDesc,
+                    note: 'Greens rolling true & firm',
+                    accentColor: AppColors.forest,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildDetailCard(
+                    icon: Icons.golf_course_rounded,
+                    title: condition.carts,
+                    subtitle: condition.cartsDesc,
+                    note: 'Keep on paths near tees & greens',
+                    accentColor: const Color(0xFF475569),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Live GPS & Refresh Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFF0F3E22),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text('Acquiring live GPS location...'),
+                            ],
+                          ),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                      final success = await ref
+                          .read(courseProvider.notifier)
+                          .refreshWithGps();
+                      if (context.mounted) {
+                        final newCond = ref.read(courseProvider).condition;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor:
+                                success ? AppColors.forest : Colors.black87,
+                            content: Text(
+                              success
+                                  ? 'GPS Locked: ${newCond.location} (${newCond.weather}, ${newCond.weatherDesc})'
+                                  : 'Updated conditions for ${newCond.location}',
+                            ),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.my_location_rounded,
+                        size: 18, color: Colors.white),
+                    label: const Text(
+                      'Detect GPS',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.borderLight),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await ref
+                          .read(courseProvider.notifier)
+                          .refreshWeather();
+                    },
+                    icon: const Icon(Icons.refresh_rounded,
+                        size: 18, color: AppColors.forest),
+                    label: const Text(
+                      'Refresh Feed',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.forest,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String note,
+    required Color accentColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.sandLight.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 18, color: accentColor),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            note,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey.shade500,
+            ),
+          ),
         ],
       ),
     );

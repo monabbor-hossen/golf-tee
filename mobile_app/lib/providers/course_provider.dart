@@ -125,6 +125,39 @@ class CourseNotifier extends Notifier<CourseState> {
     }
   }
 
+  Future<void> refreshWeather({
+    String? location,
+    double? lat,
+    double? lng,
+  }) async {
+    final cond = await _api.fetchConditions(
+      location: location,
+      lat: lat,
+      lng: lng,
+    );
+    if (cond != null) {
+      state = state.copyWith(condition: cond);
+    } else {
+      await loadHomeConditions();
+    }
+  }
+
+  Future<bool> refreshWithGps() async {
+    final gps = await _api.detectDeviceGps();
+    if (gps != null && gps['lat'] != null && gps['lng'] != null) {
+      final cond = await _api.fetchConditions(
+        lat: gps['lat'] as double,
+        lng: gps['lng'] as double,
+      );
+      if (cond != null) {
+        state = state.copyWith(condition: cond);
+        return true;
+      }
+    }
+    await loadHomeConditions();
+    return false;
+  }
+
   Future<void> loadSlots() async {
     state = state.copyWith(isLoading: true);
     final slots = await _api.fetchSlots(state.selectedDateString, state.holes);

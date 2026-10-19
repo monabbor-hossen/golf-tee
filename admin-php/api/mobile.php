@@ -84,6 +84,11 @@ switch ($action) {
         handleMembers($pdo);
         break;
 
+    case 'weather':
+    case 'conditions':
+        handleWeather($pdo);
+        break;
+
     case 'profile':
         handleProfile($pdo, $currentMemberId);
         break;
@@ -214,17 +219,22 @@ function handleHome(PDO $pdo, int $memberId): void
     }
 
     // 5. Course conditions / metadata
-    $conditions = [
-        'weather' => '68°',
-        'weather_desc' => 'Sunny',
-        'wind' => '6 mph',
-        'wind_desc' => 'NW wind',
-        'green_speed' => '10.5',
-        'speed_desc' => 'Green speed',
-        'carts' => 'Open',
-        'carts_desc' => 'Carts on fairways',
-        'updated_at' => 'Updated 7:45 AM'
-    ];
+    try {
+        $weatherService = new \App\Services\WeatherService();
+        $conditions = $weatherService->getConditions();
+    } catch (\Throwable $e) {
+        $conditions = [
+            'weather' => '68°',
+            'weather_desc' => 'Sunny',
+            'wind' => '6 mph',
+            'wind_desc' => 'NW wind',
+            'green_speed' => '10.5',
+            'speed_desc' => 'Green speed',
+            'carts' => 'Open',
+            'carts_desc' => 'Carts on fairways',
+            'updated_at' => 'Updated ' . date('g:i A')
+        ];
+    }
 
     echo json_encode([
         'status' => 'ok',
@@ -235,6 +245,29 @@ function handleHome(PDO $pdo, int $memberId): void
         'conditions' => $conditions,
         'course' => 'Pine Valley GC'
     ]);
+}
+
+function handleWeather(PDO $pdo): void
+{
+    $location = $_GET['location'] ?? null;
+    $lat = isset($_GET['lat']) && is_numeric($_GET['lat']) ? (float)$_GET['lat'] : null;
+    $lng = isset($_GET['lng']) && is_numeric($_GET['lng']) ? (float)$_GET['lng'] : null;
+    $unit = $_GET['unit'] ?? 'F';
+    $force = isset($_GET['refresh']) && $_GET['refresh'] === '1';
+    try {
+        $weatherService = new \App\Services\WeatherService();
+        $conditions = $weatherService->getConditions($location, $unit, $force, $lat, $lng);
+        echo json_encode([
+            'status' => 'ok',
+            'conditions' => $conditions
+        ]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
 }
 
 function handleSlots(PDO $pdo): void

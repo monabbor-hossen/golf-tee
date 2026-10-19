@@ -41,6 +41,19 @@ class SettingController
         $error = '';
         $tab   = $request->getString('tab', 'Course');
 
+        // Instant AJAX weather test (supports city query or live GPS lat/lng)
+        if ($request->getString('action') === 'weather_check') {
+            $loc = $request->getString('location') ?: null;
+            $lat = $request->input('lat') !== null && is_numeric($request->input('lat')) ? (float)$request->input('lat') : null;
+            $lng = $request->input('lng') !== null && is_numeric($request->input('lng')) ? (float)$request->input('lng') : null;
+            $unit = $request->getString('unit', 'F');
+            $weatherService = new \App\Services\WeatherService($this->settingRepo);
+            $data = $weatherService->getConditions($loc, $unit, true, $lat, $lng);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'ok', 'data' => $data]);
+            exit;
+        }
+
         if ($request->isPost()) {
             Session::validateRequestCsrf($request);
             $action = $request->getString('action');
@@ -48,6 +61,8 @@ class SettingController
             if ($action === 'save') {
                 $fields = [
                     'course_name', 'phone', 'address', 'timezone', 'currency',
+                    'course_location', 'course_lat', 'course_lng',
+                    'green_speed', 'speed_desc', 'carts', 'carts_desc', 'weather_unit',
                     'first_tee', 'last_tee', 'interval', 'max_party', 'advance_days', 'cancel_hours',
                     'price_weekday_18', 'price_weekday_9', 'price_weekend_18', 'price_weekend_9',
                     'price_twilight_18', 'price_twilight_9',
@@ -124,12 +139,16 @@ class SettingController
         $timezones  = TimezoneHelper::getAllGrouped();
         $currencies = CurrencyHelper::getAll();
 
+        $weatherService = new \App\Services\WeatherService($this->settingRepo);
+        $conditions     = $weatherService->getConditions($settings['course_location'] ?? 'Pine Valley, NJ', $settings['weather_unit'] ?? 'F');
+
         View::render('settings', [
             'currentPage' => 'settings',
             'tab'         => $tab,
             'saved'       => $saved,
             'error'       => $error,
             'settings'    => $settings,
+            'conditions'  => $conditions,
             'openDays'    => $openDays,
             'days'        => $days,
             'staff'       => $staff,

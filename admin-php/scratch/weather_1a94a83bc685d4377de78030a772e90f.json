@@ -1,0 +1,20 @@
+{
+    "location": "Pashchim Sultanpur",
+    "lat": 22.533,
+    "lng": 91.9,
+    "gps_formatted": "22.5330\u00b0 N, 91.9000\u00b0 E",
+    "weather": "86\u00b0",
+    "weather_desc": "Partly Cloudy",
+    "wind": "9 mph",
+    "wind_desc": "WNW wind",
+    "humidity": "61%",
+    "feels_like": "92\u00b0",
+    "green_speed": "10.5",
+    "speed_desc": "Green speed",
+    "carts": "Open",
+    "carts_desc": "Carts on fairways",
+    "updated_at": "Updated 3:05 PM",
+    "is_live": true,
+    "is_gps": true,
+    "source": "wttr.in Free API"
+}

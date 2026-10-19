@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:golf_tee_mobile/main.dart';
+import 'package:golf_tee_mobile/models/course_condition.dart';
 import 'package:golf_tee_mobile/providers/member_provider.dart';
 import 'package:golf_tee_mobile/screens/login_screen.dart';
 
@@ -59,6 +60,40 @@ void main() {
     expect(container.read(memberProvider).isLoggedIn, isTrue);
     expect(container.read(memberProvider).member.name, 'Mina Lee');
     expect(container.read(memberProvider).member.id, 2);
+  });
+
+  test('CourseCondition parses live weather and conditions correctly', () {
+    final json = {
+      'weather': '72°',
+      'weather_desc': 'Sunny',
+      'wind': '8 mph',
+      'wind_desc': 'NW wind',
+      'green_speed': '10.5',
+      'speed_desc': 'Green speed',
+      'carts': 'Open',
+      'carts_desc': 'Carts on fairways',
+      'updated_at': 'Updated 2:45 PM',
+      'location': 'Pine Valley, NJ',
+      'humidity': '42%',
+      'is_live': true,
+      'lat': 23.8103,
+      'lng': 90.4125,
+      'gps_formatted': '23.8103° N, 90.4125° E',
+      'is_gps': true,
+    };
+
+    final condition = CourseCondition.fromJson(json);
+    expect(condition.weather, '72°');
+    expect(condition.weatherDesc, 'Sunny');
+    expect(condition.wind, '8 mph');
+    expect(condition.windDesc, 'NW wind');
+    expect(condition.greenSpeed, '10.5');
+    expect(condition.location, 'Pine Valley, NJ');
+    expect(condition.isLive, isTrue);
+    expect(condition.lat, 23.8103);
+    expect(condition.lng, 90.4125);
+    expect(condition.gpsFormatted, '23.8103° N, 90.4125° E');
+    expect(condition.isGps, isTrue);
   });
 }
 

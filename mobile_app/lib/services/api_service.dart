@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/booking.dart';
+import '../models/course_condition.dart';
 import '../models/member.dart';
 import '../models/tee_slot.dart';
 import '../models/waitlist_entry.dart';
@@ -86,10 +87,64 @@ class ApiService {
         'speed_desc': 'Green speed',
         'carts': 'Open',
         'carts_desc': 'Carts on fairways',
-        'updated_at': 'Updated 7:45 AM'
+        'updated_at': 'Updated 7:45 AM',
+        'location': 'Pine Valley, NJ',
+        'humidity': '45%',
+        'is_live': false,
       },
       'course': 'Pine Valley GC'
     };
+  }
+
+  // ── 1b. Fetch Live Weather & Course Conditions ────────────
+  Future<CourseCondition?> fetchConditions({
+    String? location,
+    double? lat,
+    double? lng,
+  }) async {
+    try {
+      String query = '$baseUrl?action=weather&refresh=1';
+      if (lat != null && lng != null) {
+        query += '&lat=$lat&lng=$lng';
+      } else if (location != null && location.isNotEmpty) {
+        query += '&location=${Uri.encodeComponent(location)}';
+      }
+      final uri = Uri.parse(query);
+      final res = await http.get(uri).timeout(_timeout);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'ok' && data['conditions'] != null) {
+          return CourseCondition.fromJson(data['conditions']);
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchConditions error: $e');
+    }
+    return null;
+  }
+
+  // ── 1c. Free Live Device GPS Detection ───────────────────
+  Future<Map<String, dynamic>?> detectDeviceGps() async {
+    try {
+      final res = await http
+          .get(Uri.parse('https://ipwho.is/'))
+          .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['latitude'] != null && data['longitude'] != null) {
+          return {
+            'lat': (data['latitude'] as num).toDouble(),
+            'lng': (data['longitude'] as num).toDouble(),
+            'city': data['city']?.toString() ?? '',
+            'region': data['region']?.toString() ?? '',
+            'country': data['country']?.toString() ?? '',
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.detectDeviceGps error: $e');
+    }
+    return null;
   }
 
   // ── 2. Fetch Slots for Date & Holes ───────────────────────
