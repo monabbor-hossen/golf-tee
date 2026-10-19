@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../constants/colors.dart';
 import '../constants/strings.dart';
+import '../models/booking.dart';
 import '../providers/app_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/course_provider.dart';
@@ -22,9 +23,13 @@ class CheckoutScreen extends ConsumerWidget {
     final cards = ref.watch(memberProvider).cards;
     final appNotifier = ref.read(appProvider.notifier);
 
-    final selectedMin = course.selectedMin ?? 480;
-    final unitPrice = course.unitPrice;
-    final greenFees = unitPrice * course.players;
+    final selectedMins = course.sortedSelectedMins.isNotEmpty
+        ? course.sortedSelectedMins
+        : [course.selectedMin ?? 480];
+    final selectedSlotsCount = selectedMins.length;
+    final greenFees = course.totalGreensFee > 0
+        ? course.totalGreensFee
+        : (course.unitPrice * course.players);
 
     // Addons cost
     double addOnTotal = 0.0;
@@ -32,12 +37,12 @@ class CheckoutScreen extends ConsumerWidget {
       if (booking.selectedAddons.contains(addon['id'])) {
         final price = addon['price'] as double;
         final perPlayer = addon['perPlayer'] as bool;
-        addOnTotal += price * (perPlayer ? course.players : 1);
+        addOnTotal += price * (perPlayer ? course.players : 1) * selectedSlotsCount;
       }
     }
 
-    // Gold member: 10% off own green fee
-    final memberDiscount = (unitPrice * 0.1).roundToDouble();
+    // Gold member: 10% off green fees
+    final memberDiscount = (greenFees * 0.1).roundToDouble();
 
     // Promo code: 10% off total
     final promoDiscount = booking.promoApplied
@@ -48,9 +53,9 @@ class CheckoutScreen extends ConsumerWidget {
 
     final dateFormatted =
         DateFormat('EEEE, MMMM d').format(course.selectedDate);
-    final timeStr = _formatMinutes(selectedMin);
+    final timeStr = selectedMins.map((m) => _formatMinutes(m)).join(' & ');
     final isWeekend = course.selectedDate.weekday >= 6;
-    final rateType = selectedMin >= 900
+    final rateType = selectedMins.any((m) => m >= 900)
         ? 'Twilight'
         : (isWeekend ? 'Weekend' : 'Weekday');
 
@@ -116,14 +121,17 @@ class CheckoutScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 6,
-                            children: [
-                              _buildPill('${course.holes} holes'),
-                              _buildPill('${course.players} players'),
-                              _buildPill(rateType),
-                            ],
-                          ),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                _buildPill('${course.holes} holes'),
+                                _buildPill('${course.players} players'),
+                                if (selectedSlotsCount > 1)
+                                  _buildPill('$selectedSlotsCount tee times'),
+                                _buildPill(rateType),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -432,7 +440,9 @@ class CheckoutScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _buildCostRow(
-                            'Green fees (${course.players} × \$${unitPrice.toInt()})',
+                            selectedSlotsCount > 1
+                                ? 'Green fees ($selectedSlotsCount times × ${course.players} players)'
+                                : 'Green fees (${course.players} × \$${course.unitPrice.toInt()})',
                             '\$${greenFees.toInt()}',
                           ),
                           if (addOnTotal > 0) ...[
@@ -493,19 +503,25 @@ class CheckoutScreen extends ConsumerWidget {
 
                     // Pay Button
                     PrimaryButton(
-                      text: 'Pay \$${grandTotal.toInt()}',
+                      text: selectedSlotsCount > 1
+                          ? 'Pay \$${grandTotal.toInt()} ($selectedSlotsCount tee times)'
+                          : 'Pay \$${grandTotal.toInt()}',
                       isLoading: booking.isBookingLoading,
                       onPressed: () async {
-                        final b = await bookingNotifier.confirmBooking(
-                          date: course.selectedDateString,
-                          min: selectedMin,
-                          holes: course.holes,
-                          players: course.players,
-                          total: grandTotal,
-                        );
-                        if (b != null) {
-                          ref.read(courseProvider.notifier).selectSlot(null);
-                          appNotifier.navigateTo(AppScreen.success, b.id);
+                        Booking? lastBooking;
+                        final perSlotTotal = grandTotal / selectedSlotsCount;
+                        for (final min in selectedMins) {
+                          lastBooking = await bookingNotifier.confirmBooking(
+                            date: course.selectedDateString,
+                            min: min,
+                            holes: course.holes,
+                            players: course.players,
+                            total: perSlotTotal,
+                          );
+                        }
+                        if (lastBooking != null) {
+                          ref.read(courseProvider.notifier).clearSelectedSlots();
+                          appNotifier.navigateTo(AppScreen.success, lastBooking.id);
                         }
                       },
                     ),

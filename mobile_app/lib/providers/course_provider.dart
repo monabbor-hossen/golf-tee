@@ -9,7 +9,7 @@ class CourseState {
   final int holes; // 18 or 9
   final int players; // 1 to 4
   final String timeOfDay; // 'All', 'Morning', 'Midday', 'Twilight'
-  final int? selectedMin;
+  final Set<int> selectedMins;
   final List<TeeSlot> slots;
   final bool isLoading;
 
@@ -19,10 +19,13 @@ class CourseState {
     this.holes = 18,
     this.players = 2,
     this.timeOfDay = 'All',
-    this.selectedMin,
+    Set<int>? selectedMins,
+    int? selectedMin,
     this.slots = const [],
     this.isLoading = false,
-  }) : condition = condition ?? CourseCondition();
+  })  : condition = condition ?? CourseCondition(),
+        selectedMins = selectedMins ??
+            (selectedMin != null ? {selectedMin} : const <int>{});
 
   DateTime get selectedDate =>
       DateTime.now().add(Duration(days: selectedDayOffset));
@@ -30,10 +33,18 @@ class CourseState {
   String get selectedDateString =>
       selectedDate.toIso8601String().split('T')[0];
 
-  double get unitPrice {
-    if (selectedMin == null) return 0.0;
+  int? get selectedMin =>
+      selectedMins.isEmpty ? null : (selectedMins.toList()..sort()).first;
+
+  List<int> get sortedSelectedMins => selectedMins.toList()..sort();
+
+  bool isSlotSelected(int min) => selectedMins.contains(min);
+
+  int get selectedSlotsCount => selectedMins.length;
+
+  double unitPriceFor(int min) {
     final isWeekend = selectedDate.weekday >= 6;
-    if (selectedMin! >= 900) {
+    if (min >= 900) {
       return (holes == 18) ? 55.0 : 35.0;
     }
     if (isWeekend) {
@@ -42,24 +53,50 @@ class CourseState {
     return (holes == 18) ? 85.0 : 48.0;
   }
 
+  double get unitPrice {
+    if (selectedMin == null) return 0.0;
+    return unitPriceFor(selectedMin!);
+  }
+
+  double get totalGreensFee {
+    if (selectedMins.isEmpty) return 0.0;
+    double sum = 0.0;
+    for (final m in selectedMins) {
+      sum += unitPriceFor(m) * players;
+    }
+    return sum;
+  }
+
   CourseState copyWith({
     CourseCondition? condition,
     int? selectedDayOffset,
     int? holes,
     int? players,
     String? timeOfDay,
+    Set<int>? selectedMins,
     int? selectedMin,
     List<TeeSlot>? slots,
     bool? isLoading,
     bool clearSelectedMin = false,
   }) {
+    Set<int> newMins;
+    if (clearSelectedMin) {
+      newMins = const <int>{};
+    } else if (selectedMins != null) {
+      newMins = selectedMins;
+    } else if (selectedMin != null) {
+      newMins = {selectedMin};
+    } else {
+      newMins = this.selectedMins;
+    }
+
     return CourseState(
       condition: condition ?? this.condition,
       selectedDayOffset: selectedDayOffset ?? this.selectedDayOffset,
       holes: holes ?? this.holes,
       players: players ?? this.players,
       timeOfDay: timeOfDay ?? this.timeOfDay,
-      selectedMin: clearSelectedMin ? null : (selectedMin ?? this.selectedMin),
+      selectedMins: newMins,
       slots: slots ?? this.slots,
       isLoading: isLoading ?? this.isLoading,
     );
@@ -121,8 +158,26 @@ class CourseNotifier extends Notifier<CourseState> {
     );
   }
 
+  void toggleSlot(int min) {
+    final updated = Set<int>.from(state.selectedMins);
+    if (updated.contains(min)) {
+      updated.remove(min);
+    } else {
+      updated.add(min);
+    }
+    state = state.copyWith(selectedMins: updated);
+  }
+
   void selectSlot(int? min) {
-    state = state.copyWith(selectedMin: min);
+    if (min == null) {
+      state = state.copyWith(clearSelectedMin: true);
+    } else {
+      toggleSlot(min);
+    }
+  }
+
+  void clearSelectedSlots() {
+    state = state.copyWith(clearSelectedMin: true);
   }
 }
 

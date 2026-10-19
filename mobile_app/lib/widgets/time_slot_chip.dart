@@ -60,7 +60,9 @@ class TimeSlotChip extends StatelessWidget {
     final ampm = parts.length > 1 ? parts[1] : '';
 
     String bottomLabel = '\$${slot.price.toInt()}';
-    if (slot.state == SlotState.waitlist) {
+    if (slot.state == SlotState.selected) {
+      bottomLabel = '✓ \$${slot.price.toInt()}';
+    } else if (slot.state == SlotState.waitlist) {
       bottomLabel = 'Waitlist';
     } else if (slot.state == SlotState.booked) {
       bottomLabel = 'Booked';
@@ -76,58 +78,76 @@ class TimeSlotChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: border, width: 1.5),
+          border: Border.all(
+            color: border,
+            width: slot.state == SlotState.selected ? 2.0 : 1.5,
+          ),
           boxShadow: slot.state == SlotState.selected
               ? [
                   BoxShadow(
-                    color: AppColors.forest.withOpacity(0.35),
+                    color: AppColors.forest.withValues(alpha: 0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ]
               : null,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Row(
+            if (slot.state == SlotState.selected)
+              const Positioned(
+                top: 4,
+                right: 6,
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 13,
+                  color: Colors.white,
+                ),
+              ),
+            Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                        decoration: slot.state == SlotState.booked
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                    ),
+                    if (ampm.isNotEmpty) ...[
+                      const SizedBox(width: 1),
+                      Text(
+                        ampm,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: textColor.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 1),
                 Text(
-                  timeStr,
+                  bottomLabel,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: textColor,
-                    decoration: slot.state == SlotState.booked
-                        ? TextDecoration.lineThrough
-                        : null,
+                    letterSpacing: 0.2,
+                    color: subColor,
                   ),
                 ),
-                if (ampm.isNotEmpty) ...[
-                  const SizedBox(width: 1),
-                  Text(
-                    ampm,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: textColor.withOpacity(0.8),
-                    ),
-                  ),
-                ],
               ],
-            ),
-            const SizedBox(height: 1),
-            Text(
-              bottomLabel,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-                color: subColor,
-              ),
             ),
           ],
         ),
