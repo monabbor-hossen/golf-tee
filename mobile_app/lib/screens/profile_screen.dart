@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/colors.dart';
+import '../models/member.dart';
 import '../models/payment_card.dart';
 import '../providers/app_provider.dart';
 import '../providers/member_provider.dart';
@@ -289,20 +290,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         children: [
                           _buildMenuLink(
                             title: 'Personal details',
-                            onTap: () => appNotifier
-                                .showToast('Personal details coming soon'),
+                            onTap: () => _showPersonalDetails(context, m),
+                          ),
+                          const Divider(height: 1, color: AppColors.borderLight),
+                          _buildMenuLink(
+                            title: 'Switch active member',
+                            onTap: () => _showMemberSwitcher(
+                                context, notifier, appNotifier),
                           ),
                           const Divider(height: 1, color: AppColors.borderLight),
                           _buildMenuLink(
                             title: 'Help & support',
-                            onTap: () => appNotifier
-                                .showToast('Connecting to support…'),
+                            onTap: () => _showHelpSupport(context, appNotifier),
                           ),
                           const Divider(height: 1, color: AppColors.borderLight),
                           _buildMenuLink(
                             title: 'Club rules & etiquette',
-                            onTap: () => appNotifier
-                                .showToast('Club rules coming soon'),
+                            onTap: () => _showClubRules(context),
                           ),
                         ],
                       ),
@@ -311,10 +315,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                     // Sign Out
                     Center(
-                      child: TextButton(
-                        onPressed: () =>
-                            appNotifier.showToast('Signed out (demo)'),
-                        child: const Text(
+                      child: TextButton.icon(
+                        onPressed: () => _showSignOutDialog(
+                            context, notifier, appNotifier),
+                        icon: const Icon(Icons.logout_rounded,
+                            size: 16, color: AppColors.danger),
+                        label: const Text(
                           'Sign out',
                           style: TextStyle(
                             fontSize: 14,
@@ -661,5 +667,340 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   static String _initials(String name) {
     return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
+  }
+
+  void _showSignOutDialog(
+    BuildContext context,
+    MemberNotifier notifier,
+    AppNotifier appNotifier,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text(
+          'Sign out of Pine Valley?',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+        ),
+        content: const Text(
+          'You will need to sign in again to view your bookings, waitlists, and tee times.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              notifier.logout();
+              appNotifier.navigateTo(AppScreen.login);
+              appNotifier.showToast('Signed out successfully');
+            },
+            child: const Text('Sign Out',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPersonalDetails(BuildContext context, Member member) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Personal Details',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildDetailRow('Full Name', member.name),
+            _buildDetailRow('Member Number', member.memberNumber),
+            _buildDetailRow('Email', member.email),
+            _buildDetailRow('Phone', member.phone.isNotEmpty ? member.phone : '(555) 301-2201'),
+            _buildDetailRow('Tier Level', '${member.tier} Member'),
+            _buildDetailRow('Current Handicap', 'HCP ${member.hcp}'),
+            _buildDetailRow('Rounds Played', '${member.rounds} rounds'),
+            _buildDetailRow('Total Spend', '\$${member.spend.toInt()}'),
+            _buildDetailRow('Member Since', member.joined),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMain,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showMemberSwitcher(
+    BuildContext context,
+    MemberNotifier notifier,
+    AppNotifier appNotifier,
+  ) async {
+    final members = await notifier.getClubMembers();
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.75,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Switch Club Member',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const Text(
+              'Select any active member to test accounts and view real data:',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: ListView.separated(
+                itemCount: members.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, idx) {
+                  final m = members[idx];
+                  return ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: AppColors.borderLight),
+                    ),
+                    tileColor: AppColors.offwhite,
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.forest.withValues(alpha: 0.15),
+                      child: Text(
+                        _initials(m.name),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.forest,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      m.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${m.tier} · HCP ${m.hcp} · ${m.email}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 13),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await notifier.loginAsMember(m);
+                      appNotifier.showToast('Switched to ${m.name}');
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHelpSupport(BuildContext context, AppNotifier appNotifier) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Pine Valley Pro Shop & Support',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textMain,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildDetailRow('Clubhouse Phone', '(555) 301-2200'),
+            _buildDetailRow('Pro Shop Direct', '(555) 301-2205'),
+            _buildDetailRow('Member Inquiries', 'members@pinevalley.com'),
+            _buildDetailRow('Operating Hours', '6:00 AM – 7:30 PM daily'),
+            _buildDetailRow('Tee Time Booking Window', '14 days in advance'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClubRules(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Club Rules & Etiquette',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textMain,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildDetailRow('Dress Code', 'Collared shirts, soft spikes only'),
+            _buildDetailRow('Pace of Play', '4 hrs 15 mins for 18 holes'),
+            _buildDetailRow('Cart Regulation', '90-degree rule on fairways'),
+            _buildDetailRow('Cell Phone Policy', 'Silent mode required on course'),
+            _buildDetailRow('Cancellation Window', '24 hours prior to tee time'),
+          ],
+        ),
+      ),
+    );
   }
 }

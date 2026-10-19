@@ -2,10 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/member.dart';
 import '../models/payment_card.dart';
 import '../services/api_service.dart';
+import 'booking_provider.dart';
 import 'course_provider.dart';
 
 class MemberState {
   final Member member;
+  final bool isLoggedIn;
+  final bool isLoading;
+  final String? loginError;
   final List<PaymentCard> cards;
   final List<double> hcpHistory;
   final Map<String, bool> notifPrefs;
@@ -13,6 +17,9 @@ class MemberState {
 
   MemberState({
     Member? member,
+    this.isLoggedIn = true,
+    this.isLoading = false,
+    this.loginError,
     this.cards = const [],
     this.hcpHistory = const [10.2, 9.9, 9.7, 9.2, 9.0, 8.7, 8.4],
     this.notifPrefs = const {'remind': true, 'wait': true, 'promo': false},
@@ -31,6 +38,9 @@ class MemberState {
 
   MemberState copyWith({
     Member? member,
+    bool? isLoggedIn,
+    bool? isLoading,
+    String? loginError,
     List<PaymentCard>? cards,
     List<double>? hcpHistory,
     Map<String, bool>? notifPrefs,
@@ -38,6 +48,9 @@ class MemberState {
   }) {
     return MemberState(
       member: member ?? this.member,
+      isLoggedIn: isLoggedIn ?? this.isLoggedIn,
+      isLoading: isLoading ?? this.isLoading,
+      loginError: loginError,
       cards: cards ?? this.cards,
       hcpHistory: hcpHistory ?? this.hcpHistory,
       notifPrefs: notifPrefs ?? this.notifPrefs,
@@ -80,6 +93,56 @@ class MemberNotifier extends Notifier<MemberState> {
         member: Member.fromJson(data['member']),
       );
     }
+  }
+
+  Future<bool> loginWithEmail(String email, [String? password]) async {
+    state = state.copyWith(isLoading: true, loginError: null);
+    final member = await _api.login(email: email.trim(), password: password);
+    if (member != null) {
+      _api.currentMemberId = member.id;
+      _api.currentMemberName = member.name;
+      state = state.copyWith(
+        member: member,
+        isLoggedIn: true,
+        isLoading: false,
+        loginError: null,
+      );
+      await loadProfile();
+      ref.read(bookingProvider.notifier).loadBookings();
+      return true;
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        loginError: 'No active member account found for "$email".',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> loginAsMember(Member m) async {
+    state = state.copyWith(isLoading: true, loginError: null);
+    _api.currentMemberId = m.id;
+    _api.currentMemberName = m.name;
+    state = state.copyWith(
+      member: m,
+      isLoggedIn: true,
+      isLoading: false,
+      loginError: null,
+    );
+    await loadProfile();
+    ref.read(bookingProvider.notifier).loadBookings();
+    return true;
+  }
+
+  void logout() {
+    state = state.copyWith(
+      isLoggedIn: false,
+      loginError: null,
+    );
+  }
+
+  Future<List<Member>> getClubMembers() async {
+    return _api.fetchMembers();
   }
 
   void toggleNotif(String key, bool val) {

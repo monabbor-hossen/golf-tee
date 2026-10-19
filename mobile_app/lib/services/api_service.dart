@@ -3,10 +3,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/booking.dart';
+import '../models/member.dart';
 import '../models/tee_slot.dart';
 import '../models/waitlist_entry.dart';
 
 class ApiService {
+  int currentMemberId = 1;
+  String currentMemberName = 'James Carter';
+
   static String get baseUrl {
     if (kIsWeb) {
       return 'http://localhost/golf-tee/admin-php/api/mobile.php';
@@ -24,7 +28,7 @@ class ApiService {
   // ── 1. Fetch Home Screen Data ─────────────────────────────
   Future<Map<String, dynamic>> fetchHomeData() async {
     try {
-      final uri = Uri.parse('$baseUrl?action=home');
+      final uri = Uri.parse('$baseUrl?action=home&member_id=$currentMemberId');
       final res = await http.get(uri).timeout(_timeout);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -36,18 +40,42 @@ class ApiService {
       debugPrint('ApiService.fetchHomeData error (using fallback): $e');
     }
 
-    // Offline fallback matching Figma design
+    // Offline fallback dynamic to current member
+    final membersList = [
+      Member(id: 1, name: 'James Carter', email: 'james.carter@mail.com', phone: '(555) 301-2201', tier: 'Gold', hcp: 8.4, rounds: 42, spend: 4820.0),
+      Member(id: 2, name: 'Mina Lee', email: 'mina.lee@mail.com', phone: '(555) 301-4410', tier: 'Gold', hcp: 5.1, rounds: 67, spend: 7310.0),
+      Member(id: 3, name: 'Raj Patel', email: 'r.patel@mail.com', phone: '(555) 301-8812', tier: 'Silver', hcp: 14.2, rounds: 23, spend: 2140.0),
+      Member(id: 4, name: 'Sofia Kim', email: 'sofia.k@mail.com', phone: '(555) 301-0937', tier: 'Standard', hcp: 21.0, rounds: 6, spend: 410.0),
+      Member(id: 5, name: 'Alejandro Gomez', email: 'agomez@mail.com', phone: '(555) 301-5521', tier: 'Silver', hcp: 11.7, rounds: 31, spend: 2980.0),
+      Member(id: 7, name: 'Daniel Brown', email: 'd.brown@mail.com', phone: '(555) 301-3390', tier: 'Gold', hcp: 3.9, rounds: 88, spend: 11250.0),
+      Member(id: 8, name: 'Lucia Rossi', email: 'lucia.rossi@mail.com', phone: '(555) 301-6604', tier: 'Silver', hcp: 16.5, rounds: 19, spend: 1720.0),
+      Member(id: 10, name: 'Priya Shah', email: 'priya.s@mail.com', phone: '(555) 301-9183', tier: 'Gold', hcp: 9.6, rounds: 54, spend: 6040.0),
+    ];
+    final activeMember = membersList.firstWhere(
+      (m) => m.id == currentMemberId,
+      orElse: () => Member(
+        id: currentMemberId,
+        name: currentMemberName,
+        email: '${currentMemberName.toLowerCase().replaceAll(' ', '.')}@mail.com',
+        phone: '(555) 301-2201',
+        tier: 'Gold',
+        hcp: 8.4,
+        rounds: 42,
+        spend: 4820.0,
+      ),
+    );
+
     return {
       'status': 'ok',
       'member': {
-        'id': 1,
-        'name': 'James Carter',
-        'email': 'james.carter@mail.com',
-        'phone': '(555) 301-2201',
-        'tier': 'Gold',
-        'hcp': 8.4,
-        'rounds': 42,
-        'spend': 4820.0,
+        'id': activeMember.id,
+        'name': activeMember.name,
+        'email': activeMember.email,
+        'phone': activeMember.phone,
+        'tier': activeMember.tier,
+        'hcp': activeMember.hcp,
+        'rounds': activeMember.rounds,
+        'spend': activeMember.spend,
       },
       'conditions': {
         'weather': '68°',
@@ -106,8 +134,8 @@ class ApiService {
       'addons': addons,
       'total': total,
       'card': card,
-      'name': 'James Carter',
-      'member_id': 1,
+      'name': currentMemberName,
+      'member_id': currentMemberId,
     };
 
     try {
@@ -149,7 +177,7 @@ class ApiService {
   // ── 4. Fetch Bookings & Waitlists ──────────────────────────
   Future<Map<String, dynamic>> fetchBookings() async {
     try {
-      final uri = Uri.parse('$baseUrl?action=bookings&member_id=1');
+      final uri = Uri.parse('$baseUrl?action=bookings&member_id=$currentMemberId');
       final res = await http.get(uri).timeout(_timeout);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -181,7 +209,7 @@ class ApiService {
   // ── 5. Cancel Booking ──────────────────────────────────────
   Future<bool> cancelBooking(int id) async {
     try {
-      final uri = Uri.parse('$baseUrl?action=cancel_booking&id=$id&member_id=1');
+      final uri = Uri.parse('$baseUrl?action=cancel_booking&id=$id&member_id=$currentMemberId');
       final res = await http.post(uri).timeout(_timeout);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -206,8 +234,8 @@ class ApiService {
       'min': min,
       'holes': holes,
       'players': players,
-      'name': 'James Carter',
-      'member_id': 1,
+      'name': currentMemberName,
+      'member_id': currentMemberId,
     };
 
     try {
@@ -242,7 +270,7 @@ class ApiService {
   // ── 7. Leave Waitlist ──────────────────────────────────────
   Future<bool> leaveWaitlist(int id) async {
     try {
-      final uri = Uri.parse('$baseUrl?action=leave_waitlist&id=$id&member_id=1');
+      final uri = Uri.parse('$baseUrl?action=leave_waitlist&id=$id&member_id=$currentMemberId');
       final res = await http.post(uri).timeout(_timeout);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -265,7 +293,7 @@ class ApiService {
           'action': 'save_score',
           'strokes': strokes,
           'diff': diff,
-          'member_id': 1,
+          'member_id': currentMemberId,
         }),
       ).timeout(_timeout);
 
@@ -279,6 +307,66 @@ class ApiService {
       debugPrint('ApiService.saveScore error: $e');
     }
     return null;
+  }
+
+  // ── 9. Member Sign In ──────────────────────────────────────
+  Future<Member?> login({String? email, int? memberId, String? password}) async {
+    try {
+      final uri = Uri.parse(baseUrl);
+      final payload = {
+        'action': 'login',
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (memberId != null) 'member_id': memberId,
+        if (password != null && password.isNotEmpty) 'password': password,
+      };
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      ).timeout(_timeout);
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'ok' && data['member'] != null) {
+          final m = Member.fromJson(data['member'] as Map<String, dynamic>);
+          currentMemberId = m.id;
+          currentMemberName = m.name;
+          return m;
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.login error: $e');
+    }
+    return null;
+  }
+
+  // ── 10. Fetch Club Members (for quick login/switcher) ─────
+  Future<List<Member>> fetchMembers() async {
+    try {
+      final uri = Uri.parse('$baseUrl?action=members');
+      final res = await http.get(uri).timeout(_timeout);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['members'] is List) {
+          return (data['members'] as List)
+              .map((m) => Member.fromJson(m as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchMembers error: $e');
+    }
+
+    return [
+      Member(id: 1, name: 'James Carter', email: 'james.carter@mail.com', phone: '(555) 301-2201', tier: 'Gold', hcp: 8.4, rounds: 42, spend: 4820),
+      Member(id: 2, name: 'Mina Lee', email: 'mina.lee@mail.com', phone: '(555) 301-4410', tier: 'Gold', hcp: 5.1, rounds: 67, spend: 7310),
+      Member(id: 3, name: 'Raj Patel', email: 'r.patel@mail.com', phone: '(555) 301-8812', tier: 'Silver', hcp: 14.2, rounds: 23, spend: 2140),
+      Member(id: 4, name: 'Sofia Kim', email: 'sofia.k@mail.com', phone: '(555) 301-0937', tier: 'Standard', hcp: 21.0, rounds: 6, spend: 410),
+      Member(id: 5, name: 'Alejandro Gomez', email: 'agomez@mail.com', phone: '(555) 301-5521', tier: 'Silver', hcp: 11.7, rounds: 31, spend: 2980),
+      Member(id: 7, name: 'Daniel Brown', email: 'd.brown@mail.com', phone: '(555) 301-3390', tier: 'Gold', hcp: 3.9, rounds: 88, spend: 11250),
+      Member(id: 8, name: 'Lucia Rossi', email: 'lucia.rossi@mail.com', phone: '(555) 301-6604', tier: 'Silver', hcp: 16.5, rounds: 19, spend: 1720),
+      Member(id: 10, name: 'Priya Shah', email: 'priya.s@mail.com', phone: '(555) 301-9183', tier: 'Gold', hcp: 9.6, rounds: 54, spend: 6040),
+    ];
   }
 
   // ── Helpers & Offline Seeds ────────────────────────────────

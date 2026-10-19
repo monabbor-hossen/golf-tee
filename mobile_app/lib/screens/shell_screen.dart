@@ -8,9 +8,11 @@ import 'bookings_screen.dart';
 import 'checkout_screen.dart';
 import 'detail_screen.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'scorecard_screen.dart';
 import 'success_screen.dart';
+import '../providers/member_provider.dart';
 
 class ShellScreen extends ConsumerStatefulWidget {
   const ShellScreen({super.key});
@@ -32,6 +34,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   Widget build(BuildContext context) {
     final app = ref.watch(appProvider);
     final appNotifier = ref.read(appProvider.notifier);
+    final memberState = ref.watch(memberProvider);
 
     // Auto dismiss toast after 2.4 seconds
     if (app.toastMessage.isNotEmpty && _toastTimer == null) {
@@ -44,7 +47,8 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
     final hideBottomNav = [
       AppScreen.checkout,
       AppScreen.success,
-    ].contains(app.currentScreen);
+      AppScreen.login,
+    ].contains(app.currentScreen) || !memberState.isLoggedIn;
 
     // Active bottom tab index (mapping checkout/success/detail back to root tab)
     int activeTabIndex = 0;
@@ -67,6 +71,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
         activeTabIndex = 4;
         break;
       case AppScreen.success:
+      case AppScreen.login:
         activeTabIndex = 0;
         break;
     }
@@ -178,6 +183,11 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   }
 
   Widget _buildCurrentScreen(AppScreen screen) {
+    final memberState = ref.watch(memberProvider);
+    if (!memberState.isLoggedIn || screen == AppScreen.login) {
+      return const LoginScreen();
+    }
+
     switch (screen) {
       case AppScreen.home:
         return const HomeScreen();
@@ -195,6 +205,8 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
         return const ScorecardScreen();
       case AppScreen.profile:
         return const ProfileScreen();
+      case AppScreen.login:
+        return const LoginScreen();
     }
   }
 

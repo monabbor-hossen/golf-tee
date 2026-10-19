@@ -1,24 +1,123 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:golf_tee_mobile/main.dart';
+import 'package:golf_tee_mobile/providers/member_provider.dart';
+import 'package:golf_tee_mobile/screens/login_screen.dart';
 
 void main() {
-  testWidgets('GolfTeeMobileApp builds cleanly', (WidgetTester tester) async {
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('NetworkImageLoadException') ||
-          details.exceptionAsString().contains('HTTP request failed')) {
-        return;
-      }
-      FlutterError.presentError(details);
-    };
+  setUpAll(() {
+    HttpOverrides.global = _FakeHttpOverrides();
+  });
 
+  testWidgets('GolfTeeMobileApp builds cleanly', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: GolfTeeMobileApp(),
       ),
     );
-
     expect(find.byType(GolfTeeMobileApp), findsOneWidget);
   });
+
+  testWidgets('LoginScreen renders and displays member access options',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('PINE VALLEY GOLF CLUB'), findsOneWidget);
+    expect(find.text('Member Portal'), findsOneWidget);
+    expect(find.text('Sign In to Portal'), findsOneWidget);
+    expect(find.text('Quick Switch Active Member'), findsOneWidget);
+  });
+
+  testWidgets('Sign out flow transitions to LoginScreen',
+      (WidgetTester tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    // Initial state is logged in
+    expect(container.read(memberProvider).isLoggedIn, isTrue);
+
+    // Trigger logout
+    container.read(memberProvider.notifier).logout();
+    expect(container.read(memberProvider).isLoggedIn, isFalse);
+
+    // Trigger login as Mina Lee
+    final members = await container.read(memberProvider.notifier).getClubMembers();
+    final mina = members.firstWhere((m) => m.id == 2);
+    await container.read(memberProvider.notifier).loginAsMember(mina);
+
+    expect(container.read(memberProvider).isLoggedIn, isTrue);
+    expect(container.read(memberProvider).member.name, 'Mina Lee');
+    expect(container.read(memberProvider).member.id, 2);
+  });
+}
+
+class _FakeHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) => _FakeHttpClient();
+}
+
+class _FakeHttpClient implements HttpClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #getUrl || invocation.memberName == #openUrl) {
+      return Future.value(_FakeHttpClientRequest());
+    }
+    return null;
+  }
+}
+
+class _FakeHttpClientRequest implements HttpClientRequest {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #close) {
+      return Future.value(_FakeHttpClientResponse());
+    }
+    return null;
+  }
+}
+
+class _FakeHttpClientResponse implements HttpClientResponse {
+  static final _kTransparentImage = Uint8List.fromList([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49,
+    0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06,
+    0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44,
+    0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D,
+    0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42,
+    0x60, 0x82
+  ]);
+
+  @override
+  int get statusCode => 200;
+
+  @override
+  int get contentLength => _kTransparentImage.length;
+
+  @override
+  HttpClientResponseCompressionState get compressionState =>
+      HttpClientResponseCompressionState.notCompressed;
+
+  @override
+  StreamSubscription<List<int>> listen(void Function(List<int> event)? onData,
+      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+    return Stream<List<int>>.value(_kTransparentImage).listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }

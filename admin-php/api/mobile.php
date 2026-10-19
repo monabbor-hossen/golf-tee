@@ -76,6 +76,14 @@ switch ($action) {
         handleLeaveWaitlist($pdo, (int)($_GET['id'] ?? $jsonBody['id'] ?? 0), $currentMemberId);
         break;
 
+    case 'login':
+        handleLogin($pdo, $jsonBody);
+        break;
+
+    case 'members':
+        handleMembers($pdo);
+        break;
+
     case 'profile':
         handleProfile($pdo, $currentMemberId);
         break;
@@ -662,3 +670,82 @@ function calculateSlotPrice(int $holes, bool $isWeekend, int $min): int
     }
     return ($holes === 18) ? 85 : 48; // Weekday rate
 }
+
+function handleLogin(PDO $pdo, array $body): void
+{
+    $email = trim($_GET['email'] ?? $body['email'] ?? '');
+    $memberId = (int)($_GET['member_id'] ?? $body['member_id'] ?? 0);
+
+    $member = null;
+    if ($memberId > 0) {
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend FROM members WHERE id = ?");
+        $stmt->execute([$memberId]);
+        $member = $stmt->fetch();
+    } elseif (!empty($email)) {
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend FROM members WHERE LOWER(email) = LOWER(?)");
+        $stmt->execute([$email]);
+        $member = $stmt->fetch();
+    }
+
+    if (!$member) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Member account not found for ' . ($email ?: "Member #$memberId") . '. Please check your email or select a member from the list.'
+        ]);
+        return;
+    }
+
+    if (($member['status'] ?? '') === 'Suspended') {
+        http_response_code(403);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Your membership account is currently suspended. Please contact club administration.'
+        ]);
+        return;
+    }
+
+    echo json_encode([
+        'status' => 'ok',
+        'message' => 'Signed in successfully',
+        'token' => 'member_token_' . $member['id'] . '_' . time(),
+        'member' => [
+            'id' => (int)$member['id'],
+            'name' => $member['name'],
+            'email' => $member['email'],
+            'phone' => $member['phone'] ?? '',
+            'tier' => $member['tier'] ?? 'Standard',
+            'hcp' => (float)$member['hcp'],
+            'rounds' => (int)$member['rounds'],
+            'last_play' => $member['last_play'] ?? '',
+            'joined' => $member['joined'] ?? '',
+            'status' => $member['status'] ?? 'Active',
+            'spend' => (float)$member['spend'],
+        ]
+    ]);
+}
+
+function handleMembers(PDO $pdo): void
+{
+    $stmt = $pdo->query("SELECT id, name, email, phone, tier, hcp, rounds, status, joined, spend FROM members ORDER BY id ASC");
+    $members = [];
+    while ($m = $stmt->fetch()) {
+        $members[] = [
+            'id' => (int)$m['id'],
+            'name' => $m['name'],
+            'email' => $m['email'],
+            'phone' => $m['phone'] ?? '',
+            'tier' => $m['tier'] ?? 'Standard',
+            'hcp' => (float)$m['hcp'],
+            'rounds' => (int)$m['rounds'],
+            'status' => $m['status'] ?? 'Active',
+            'joined' => $m['joined'] ?? '',
+            'spend' => (float)($m['spend'] ?? 0.0)
+        ];
+    }
+    echo json_encode([
+        'status' => 'ok',
+        'members' => $members
+    ]);
+}
+

@@ -9,6 +9,7 @@ enum AppScreen {
   checkout,
   success,
   detail,
+  login,
 }
 
 class AppState {
