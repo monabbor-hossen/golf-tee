@@ -20,6 +20,11 @@ class SlotFormatter
         return sprintf('%d:%02d %s', $h12, $m, $period);
     }
 
+    public static function toDisplayTime(int $minutes): string
+    {
+        return self::format($minutes);
+    }
+
     /**
      * Get human-friendly time-ago representation.
      */

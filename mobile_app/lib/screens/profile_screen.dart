@@ -1,0 +1,665 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../constants/colors.dart';
+import '../models/payment_card.dart';
+import '../providers/app_provider.dart';
+import '../providers/member_provider.dart';
+import '../widgets/handicap_chart.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/top_bar.dart';
+
+class ProfileScreen extends ConsumerStatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _showAddCard = false;
+  final _numCtrl = TextEditingController();
+  final _expCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _numCtrl.dispose();
+    _expCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final memberState = ref.watch(memberProvider);
+    final notifier = ref.read(memberProvider.notifier);
+    final appNotifier = ref.read(appProvider.notifier);
+
+    final m = memberState.member;
+    final cards = memberState.cards;
+    final hcpHist = memberState.hcpHistory;
+    final notifs = memberState.notifPrefs;
+
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 28),
+          child: Column(
+            children: [
+              const TopBar(title: 'Profile'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Member Card (Forest Green)
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: AppColors.forest,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.forest.withOpacity(0.25),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 52,
+                                height: 52,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.sand,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  _initials(m.name),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.forest,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    m.name,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.gold,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${m.tier} Member',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.goldText,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        m.memberNumber,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white.withOpacity(0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.only(top: 16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildMetric('Handicap', m.hcp.toStringAsFixed(1)),
+                                _buildMetric('Rounds', '${m.rounds}'),
+                                _buildMetric('Best score', '${memberState.bestScore}'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Handicap Trend Chart
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Column(
+                        children: [
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Handicap trend',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.arrow_downward_rounded,
+                                    size: 14,
+                                    color: AppColors.forest,
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    '0.8 this season',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.forest,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          HandicapChart(history: hcpHist),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Saved Cards
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Saved cards',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textMain,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _showAddCard = true),
+                          child: const Text(
+                            '+ Add card',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.forest,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ...cards.map((c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _buildCardRow(c, notifier, appNotifier),
+                        )),
+                    const SizedBox(height: 16),
+
+                    // Notifications Settings
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildToggleRow(
+                            title: 'Tee time reminders',
+                            subtitle: '2 hours before your round',
+                            value: notifs['remind'] ?? true,
+                            onChanged: (v) => notifier.toggleNotif('remind', v),
+                          ),
+                          const Divider(height: 1, color: AppColors.borderLight),
+                          _buildToggleRow(
+                            title: 'Waitlist alerts',
+                            subtitle: 'When a spot you want opens',
+                            value: notifs['wait'] ?? true,
+                            onChanged: (v) => notifier.toggleNotif('wait', v),
+                          ),
+                          const Divider(height: 1, color: AppColors.borderLight),
+                          _buildToggleRow(
+                            title: 'Deals & events',
+                            subtitle: 'Twilight specials, tournaments',
+                            value: notifs['promo'] ?? false,
+                            onChanged: (v) => notifier.toggleNotif('promo', v),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Menu Options
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildMenuLink(
+                            title: 'Personal details',
+                            onTap: () => appNotifier
+                                .showToast('Personal details coming soon'),
+                          ),
+                          const Divider(height: 1, color: AppColors.borderLight),
+                          _buildMenuLink(
+                            title: 'Help & support',
+                            onTap: () => appNotifier
+                                .showToast('Connecting to support…'),
+                          ),
+                          const Divider(height: 1, color: AppColors.borderLight),
+                          _buildMenuLink(
+                            title: 'Club rules & etiquette',
+                            onTap: () => appNotifier
+                                .showToast('Club rules coming soon'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Sign Out
+                    Center(
+                      child: TextButton(
+                        onPressed: () =>
+                            appNotifier.showToast('Signed out (demo)'),
+                        child: const Text(
+                          'Sign out',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Add Card Modal
+        if (_showAddCard) _buildAddCardModal(notifier, appNotifier),
+      ],
+    );
+  }
+
+  Widget _buildMetric(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withOpacity(0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardRow(
+    PaymentCard c,
+    MemberNotifier notifier,
+    AppNotifier appNotifier,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 26,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: c.brand == 'Visa'
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFB45309),
+            ),
+            child: const Icon(Icons.credit_card, size: 16, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${c.brand} •••• ${c.last4}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    if (c.isDefault) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppColors.forest.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'DEFAULT',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.forest,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  'Expires ${c.exp}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!c.isDefault) ...[
+            GestureDetector(
+              onTap: () => notifier.setDefaultCard(c.id),
+              child: const Text(
+                'Set default',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.forest,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                notifier.removeCard(c.id);
+                appNotifier.showToast('Card removed');
+              },
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleRow({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: AppColors.forest,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuLink({
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMain,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: Color(0xFFD1D5DB),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCardModal(MemberNotifier notifier, AppNotifier appNotifier) {
+    return Container(
+      color: Colors.black.withOpacity(0.45),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Add a card',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _showAddCard = false),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Card number',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _numCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: '1234 5678 9012 3456',
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Expiry',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _expCtrl,
+                keyboardType: TextInputType.datetime,
+                decoration: InputDecoration(
+                  hintText: 'MM/YY',
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              PrimaryButton(
+                text: 'Save card',
+                onPressed: () {
+                  final rawNum = _numCtrl.text.replaceAll(RegExp(r'\D'), '');
+                  final last4 =
+                      rawNum.length >= 4 ? rawNum.substring(rawNum.length - 4) : '4242';
+                  final exp = _expCtrl.text.isNotEmpty ? _expCtrl.text : '12/28';
+                  final brand = rawNum.startsWith('5') ? 'Mastercard' : 'Visa';
+
+                  notifier.addCard(brand, last4, exp);
+                  setState(() => _showAddCard = false);
+                  _numCtrl.clear();
+                  _expCtrl.clear();
+                  appNotifier.showToast('Card saved successfully!');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _initials(String name) {
+    return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
+  }
+}
