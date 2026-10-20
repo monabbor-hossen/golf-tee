@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/colors.dart';
-import '../models/member.dart';
 import '../providers/app_provider.dart';
 import '../providers/member_provider.dart';
 import '../widgets/primary_button.dart';
@@ -14,29 +13,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController =
-      TextEditingController(text: 'james.carter@mail.com');
-  final _passwordController = TextEditingController(text: '••••••••');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = true;
-  List<Member> _clubMembers = [];
-  bool _loadingMembers = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMembers();
-  }
-
-  Future<void> _loadMembers() async {
-    final members = await ref.read(memberProvider.notifier).getClubMembers();
-    if (mounted) {
-      setState(() {
-        _clubMembers = members;
-        _loadingMembers = false;
-      });
-    }
-  }
+  String? _localEmailError;
+  String? _localPasswordError;
 
   @override
   void dispose() {
@@ -45,32 +27,188 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleEmailLogin() async {
+  void _validateAndSubmit() {
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ref.read(appProvider.notifier).showToast('Please enter your member email');
-      return;
-    }
+    final password = _passwordController.text;
 
+    setState(() {
+      _localEmailError = email.isEmpty
+          ? 'Please enter your member email or ID'
+          : null;
+      _localPasswordError = password.isEmpty
+          ? 'Please enter your password or PIN'
+          : null;
+    });
+
+    if (_localEmailError == null && _localPasswordError == null) {
+      _handleEmailLogin(email, password);
+    }
+  }
+
+  Future<void> _handleEmailLogin(String email, String password) async {
     final success = await ref
         .read(memberProvider.notifier)
-        .loginWithEmail(email, _passwordController.text);
+        .loginWithEmail(email, password);
 
     if (success && mounted) {
-      ref.read(appProvider.notifier).showToast('Signed in successfully');
+      final member = ref.read(memberProvider).member;
+      final firstName = member.name.isNotEmpty
+          ? member.name.split(' ').first
+          : 'Member';
+      ref.read(appProvider.notifier).showToast('Welcome back, $firstName!');
       ref.read(appProvider.notifier).navigateTo(AppScreen.home);
     }
   }
 
-  Future<void> _handleQuickLogin(Member member) async {
-    final success =
-        await ref.read(memberProvider.notifier).loginAsMember(member);
-    if (success && mounted) {
-      ref
-          .read(appProvider.notifier)
-          .showToast('Welcome back, ${member.name.split(' ').first}!');
-      ref.read(appProvider.notifier).navigateTo(AppScreen.home);
-    }
+  void _showForgotPinDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.forest.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_reset_rounded,
+                    color: AppColors.forest,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Forgot PIN or Password?',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Pine Valley Member Services',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'For member security, PIN resets are authenticated through the club concierge. Please contact the Pro Shop or Member Relations with your membership ID.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _buildSupportContactTile(
+              icon: Icons.phone_outlined,
+              title: 'Pro Shop Direct Desk',
+              subtitle: '(555) 301-2200 · Daily 6:00 AM – 7:30 PM',
+              onTap: () {
+                Navigator.pop(ctx);
+                ref.read(appProvider.notifier).showToast('Calling Pro Shop at (555) 301-2200');
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildSupportContactTile(
+              icon: Icons.email_outlined,
+              title: 'Member Relations Office',
+              subtitle: 'members@pinevalley.com',
+              onTap: () {
+                Navigator.pop(ctx);
+                ref.read(appProvider.notifier).showToast('Email: members@pinevalley.com');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportContactTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.offwhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.forest),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                size: 13, color: AppColors.textMuted),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -165,7 +303,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // Email & Password Sign In Form
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -182,18 +320,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Sign In with Member Email',
+                      'Member Sign In',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textMain,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Enter your registered member email and password or security PIN.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Email Field
                     const Text(
-                      'Email Address',
+                      'Email Address / Member ID',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -204,8 +351,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      onChanged: (_) {
+                        if (_localEmailError != null) {
+                          setState(() => _localEmailError = null);
+                        }
+                      },
                       decoration: InputDecoration(
-                        hintText: 'e.g. james.carter@mail.com',
+                        hintText: 'e.g. member@pinevalley.com',
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade400,
@@ -221,25 +375,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fillColor: AppColors.offwhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(color: AppColors.borderLight),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: AppColors.borderLight),
+                          borderSide: BorderSide(
+                            color: _localEmailError != null
+                                ? AppColors.danger
+                                : AppColors.borderLight,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                              color: AppColors.forest, width: 1.8),
+                          borderSide: BorderSide(
+                            color: _localEmailError != null
+                                ? AppColors.danger
+                                : AppColors.forest,
+                            width: 1.8,
+                          ),
                         ),
                       ),
                     ),
+                    if (_localEmailError != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _localEmailError!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 14),
 
                     // Password Field
                     const Text(
-                      'Password / PIN',
+                      'Password / Security PIN',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -250,8 +423,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (_localPasswordError != null) {
+                          setState(() => _localPasswordError = null);
+                        }
+                      },
+                      onSubmitted: (_) => _validateAndSubmit(),
                       decoration: InputDecoration(
-                        hintText: '••••••••',
+                        hintText: 'Enter password or PIN',
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade400,
+                        ),
                         prefixIcon: const Icon(
                           Icons.lock_outline_rounded,
                           size: 19,
@@ -277,19 +461,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fillColor: AppColors.offwhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(color: AppColors.borderLight),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: AppColors.borderLight),
+                          borderSide: BorderSide(
+                            color: _localPasswordError != null
+                                ? AppColors.danger
+                                : AppColors.borderLight,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                              color: AppColors.forest, width: 1.8),
+                          borderSide: BorderSide(
+                            color: _localPasswordError != null
+                                ? AppColors.danger
+                                : AppColors.forest,
+                            width: 1.8,
+                          ),
                         ),
                       ),
                     ),
+                    if (_localPasswordError != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _localPasswordError!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 8),
 
@@ -325,10 +528,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
                         ),
                         TextButton(
-                          onPressed: () {
-                            ref.read(appProvider.notifier).showToast(
-                                'Contact Pro Shop at (555) 301-2200 to reset PIN');
-                          },
+                          onPressed: _showForgotPinDialog,
                           child: const Text(
                             'Forgot PIN?',
                             style: TextStyle(
@@ -342,27 +542,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
 
                     if (memberState.loginError != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.dangerLight,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                               color: AppColors.danger.withValues(alpha: 0.3)),
                         ),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.error_outline,
-                                color: AppColors.danger, size: 16),
+                            const Padding(
+                              padding: EdgeInsets.only(top: 1),
+                              child: Icon(Icons.error_outline_rounded,
+                                  color: AppColors.danger, size: 16),
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 memberState.loginError!,
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.danger,
+                                  height: 1.35,
                                 ),
                               ),
                             ),
@@ -371,201 +576,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     PrimaryButton(
                       text: 'Sign In to Portal',
                       isLoading: memberState.isLoading,
-                      onPressed: _handleEmailLogin,
+                      onPressed: _validateAndSubmit,
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // 1-Tap Quick Member Login Section
-              Row(
-                children: [
-                  const Icon(Icons.touch_app_outlined,
-                      size: 16, color: AppColors.forest),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Quick Switch Active Member',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textMain,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${_clubMembers.length} club members',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              if (_loadingMembers)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: AppColors.forest),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _clubMembers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final m = _clubMembers[index];
-                    final isCurrent = m.id == memberState.member.id;
-
-                    Color tierColor;
-                    if (m.tier == 'Gold') {
-                      tierColor = const Color(0xFFD4AF37);
-                    } else if (m.tier == 'Silver') {
-                      tierColor = const Color(0xFF94A3B8);
-                    } else {
-                      tierColor = AppColors.forest;
-                    }
-
-                    return InkWell(
-                      onTap: () => _handleQuickLogin(m),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isCurrent
-                              ? AppColors.forestLight.withValues(alpha: 0.6)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isCurrent
-                                ? AppColors.forest
-                                : AppColors.borderLight,
-                            width: isCurrent ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundColor: tierColor.withValues(alpha: 0.18),
-                              child: Text(
-                                m.name.isNotEmpty
-                                    ? m.name
-                                        .split(' ')
-                                        .map((p) => p[0])
-                                        .take(2)
-                                        .join()
-                                    : 'M',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: tierColor,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        m.name,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textMain,
-                                        ),
-                                      ),
-                                      if (isCurrent) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.forest,
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: const Text(
-                                            'ACTIVE',
-                                            style: TextStyle(
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.w900,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${m.email} · HCP ${m.hcp} · ${m.rounds} rounds',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: tierColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: tierColor.withValues(alpha: 0.4),
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: Text(
-                                m.tier.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: tierColor,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 13,
-                              color: AppColors.textMuted,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+              // Club Security Notice Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.borderLight),
                 ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.forest.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        size: 20,
+                        color: AppColors.forest,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Authorized Member Access',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textMain,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Access is restricted to verified Pine Valley Golf Club members and authorized guests. Credentials are authenticated directly with the club administration system.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
 
               // Footer Support Link
               Center(
                 child: TextButton.icon(
-                  onPressed: () {
-                    ref.read(appProvider.notifier).showToast(
-                        'Pine Valley Pro Shop: (555) 301-2200 · proshop@pinevalley.com');
-                  },
+                  onPressed: _showForgotPinDialog,
                   icon: const Icon(Icons.headset_mic_outlined,
                       size: 15, color: AppColors.forest),
                   label: const Text(

@@ -37,7 +37,7 @@ void main() {
     expect(find.text('PINE VALLEY GOLF CLUB'), findsOneWidget);
     expect(find.text('Member Portal'), findsOneWidget);
     expect(find.text('Sign In to Portal'), findsOneWidget);
-    expect(find.text('Quick Switch Active Member'), findsOneWidget);
+    expect(find.text('Authorized Member Access'), findsOneWidget);
   });
 
   testWidgets('Sign out flow transitions to LoginScreen',

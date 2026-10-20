@@ -97,12 +97,12 @@ class MemberNotifier extends Notifier<MemberState> {
 
   Future<bool> loginWithEmail(String email, [String? password]) async {
     state = state.copyWith(isLoading: true, loginError: null);
-    final member = await _api.login(email: email.trim(), password: password);
-    if (member != null) {
-      _api.currentMemberId = member.id;
-      _api.currentMemberName = member.name;
+    final result = await _api.login(email: email.trim(), password: password);
+    if (result.success && result.member != null) {
+      _api.currentMemberId = result.member!.id;
+      _api.currentMemberName = result.member!.name;
       state = state.copyWith(
-        member: member,
+        member: result.member,
         isLoggedIn: true,
         isLoading: false,
         loginError: null,
@@ -113,7 +113,7 @@ class MemberNotifier extends Notifier<MemberState> {
     } else {
       state = state.copyWith(
         isLoading: false,
-        loginError: 'No active member account found for "$email".',
+        loginError: result.errorMessage ?? 'No active member account found for "$email".',
       );
       return false;
     }

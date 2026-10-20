@@ -8,6 +8,18 @@ import '../models/member.dart';
 import '../models/tee_slot.dart';
 import '../models/waitlist_entry.dart';
 
+class AuthResult {
+  final bool success;
+  final Member? member;
+  final String? errorMessage;
+
+  const AuthResult({
+    required this.success,
+    this.member,
+    this.errorMessage,
+  });
+}
+
 class ApiService {
   int currentMemberId = 1;
   String currentMemberName = 'James Carter';
@@ -413,28 +425,40 @@ class ApiService {
   }
 
   // ── 9. Member Sign In ──────────────────────────────────────
-  Future<Member?> login({String? email, int? memberId, String? password}) async {
+  Future<AuthResult> login({String? email, int? memberId, String? password}) async {
     try {
       final payload = {
         'action': 'login',
         if (email != null && email.isNotEmpty) 'email': email,
-        if (memberId != null) 'member_id': memberId,
+        if (memberId != null && memberId > 0) 'member_id': memberId,
         if (password != null && password.isNotEmpty) 'password': password,
       };
       final res = await _httpPost(payload);
-      if (res.statusCode == 200) {
+      if (res.body.isNotEmpty) {
         final data = jsonDecode(res.body);
-        if (data['status'] == 'ok' && data['member'] != null) {
+        if (res.statusCode == 200 && data['status'] == 'ok' && data['member'] != null) {
           final m = Member.fromJson(data['member'] as Map<String, dynamic>);
           currentMemberId = m.id;
           currentMemberName = m.name;
-          return m;
+          return AuthResult(success: true, member: m);
+        } else if (data['message'] != null) {
+          return AuthResult(
+            success: false,
+            errorMessage: data['message'].toString(),
+          );
         }
       }
+      return AuthResult(
+        success: false,
+        errorMessage: 'Invalid credentials. Please verify your member email or ID.',
+      );
     } catch (e) {
       debugPrint('ApiService.login error: $e');
+      return AuthResult(
+        success: false,
+        errorMessage: 'Unable to connect to Pine Valley club server. Please verify your connection.',
+      );
     }
-    return null;
   }
 
   // ── 10. Fetch Club Members (for quick login/switcher) ─────

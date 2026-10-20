@@ -735,7 +735,7 @@ function handleLogin(PDO $pdo, array $body): void
         http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Member account not found for ' . ($email ?: "Member #$memberId") . '. Please check your email or select a member from the list.'
+            'message' => 'Member account not found for ' . ($email ?: "Member #$memberId") . '. Please verify your email address or contact the club office.'
         ]);
         return;
     }
@@ -744,7 +744,16 @@ function handleLogin(PDO $pdo, array $body): void
         http_response_code(403);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Your membership account is currently suspended. Please contact club administration.'
+            'message' => 'Your membership account is currently suspended. Please contact club administration at (555) 301-2200.'
+        ]);
+        return;
+    }
+
+    if (($member['status'] ?? '') === 'Pending') {
+        http_response_code(403);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Your membership account is currently pending committee review. Please check back soon.'
         ]);
         return;
     }
