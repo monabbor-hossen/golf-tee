@@ -33,6 +33,7 @@ class Session
         if (!empty($_SESSION['staff_id'])) {
             $lastActivity = $_SESSION['_last_activity'] ?? time();
             if (time() - $lastActivity > self::SESSION_LIFETIME) {
+                $_SESSION = [];
                 self::logout();
                 Response::redirect(Config::get('APP_URL') . '/login.php?timeout=1');
             }
@@ -107,7 +108,9 @@ class Session
 
     public static function logout(): void
     {
-        self::start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -121,7 +124,9 @@ class Session
                 $params['httponly']
             );
         }
-        session_destroy();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
     }
 
     public static function setFlash(string $type, string $message): void
