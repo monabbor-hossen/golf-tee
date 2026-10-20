@@ -4,6 +4,7 @@ import '../constants/colors.dart';
 import '../models/booking.dart';
 import '../providers/app_provider.dart';
 import '../providers/booking_provider.dart';
+import '../providers/course_provider.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/qr_ticket_view.dart';
 import '../widgets/top_bar.dart';
@@ -229,7 +230,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
         // Cancel Confirmation Modal
         if (_showCancelModal)
           _buildCancelSheet(context, b, refundAmount, isFreeCancel,
-              bookingNotifier, appNotifier),
+              bookingNotifier, appNotifier, ref),
       ],
     );
   }
@@ -322,6 +323,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     bool isFreeCancel,
     BookingNotifier bookingNotifier,
     AppNotifier appNotifier,
+    WidgetRef ref,
   ) {
     return Container(
       color: Colors.black.withOpacity(0.45),
@@ -405,6 +407,8 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                 backgroundColor: AppColors.danger,
                 onPressed: () async {
                   await bookingNotifier.cancelBooking(b.id);
+                  ref.read(courseProvider.notifier).loadSlots();
+                  ref.read(courseProvider.notifier).loadHomeConditions();
                   setState(() => _showCancelModal = false);
                   appNotifier.showToast('Cancelled · \$${refundAmount.toInt()} refunded');
                   appNotifier.navigateTo(AppScreen.bookings);

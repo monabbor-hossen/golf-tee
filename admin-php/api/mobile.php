@@ -388,17 +388,20 @@ function handleBook(PDO $pdo, array $body, int $memberId): void
 
         // Record in transactions ledger
         $txnId = 'TXN-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        $nowMin = (int)date('H') * 60 + (int)date('i');
         $stmt = $pdo->prepare("
-            INSERT INTO transactions (id, txn_date, txn_time, member_id, description, category, amount, method, status, ref)
-            VALUES (?, ?, CURTIME(), ?, ?, 'Green fee', ?, 'Credit Card', 'Paid', ?)
+            INSERT INTO transactions (id, txn_date, txn_time, name, description, type, method, amount, status, ref, member_id)
+            VALUES (?, ?, ?, ?, ?, 'Green fee', 'Credit Card', ?, 'Paid', ?, ?)
         ");
         $stmt->execute([
             $txnId,
             $date,
-            $memberId,
+            $nowMin,
+            $name,
             "Tee time reservation ($holes holes, $players players)",
             $total,
-            $bookingId
+            (string)$bookingId,
+            $memberId
         ]);
 
         // Remove from waitlist if this member was on waitlist for this slot
@@ -579,11 +582,19 @@ function handleCancelBooking(PDO $pdo, int $id, int $memberId): void
 
         // Record refund in transactions
         $txnId = 'REF-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        $nowMin = (int)date('H') * 60 + (int)date('i');
         $stmt = $pdo->prepare("
-            INSERT INTO transactions (id, txn_date, txn_time, member_id, description, category, amount, method, status, ref)
-            VALUES (?, CURDATE(), CURTIME(), ?, 'Refund: Cancelled Tee Time', 'Refund', ?, 'Credit Card', 'Refunded', ?)
+            INSERT INTO transactions (id, txn_date, txn_time, name, description, type, method, amount, status, ref, member_id)
+            VALUES (?, CURDATE(), ?, ?, 'Refund: Cancelled Tee Time', 'Green fee', 'Credit Card', ?, 'Refunded', ?, ?)
         ");
-        $stmt->execute([$txnId, $memberId, -$refundAmount, $id]);
+        $stmt->execute([
+            $txnId,
+            $nowMin,
+            $b['name'] ?? 'Member',
+            -$refundAmount,
+            (string)$id,
+            $memberId
+        ]);
 
         $pdo->commit();
 

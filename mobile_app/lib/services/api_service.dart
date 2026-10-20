@@ -12,25 +12,88 @@ class ApiService {
   int currentMemberId = 1;
   String currentMemberName = 'James Carter';
 
-  static String get baseUrl {
+  static String? _resolvedBaseUrl;
+
+  static List<String> get _candidateUrls {
     if (kIsWeb) {
-      return 'http://localhost/golf-tee/admin-php/api/mobile.php';
+      return const [
+        'http://localhost/golf-tee/admin-php/api/mobile.php',
+        'http://127.0.0.1/golf-tee/admin-php/api/mobile.php',
+      ];
     }
     try {
       if (Platform.isAndroid) {
-        return 'http://10.0.2.2/golf-tee/admin-php/api/mobile.php';
+        return const [
+          'http://10.0.2.2/golf-tee/admin-php/api/mobile.php',
+          'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
+          'http://localhost/golf-tee/admin-php/api/mobile.php',
+        ];
       }
     } catch (_) {}
-    return 'http://localhost/golf-tee/admin-php/api/mobile.php';
+    return const [
+      'http://localhost/golf-tee/admin-php/api/mobile.php',
+      'http://127.0.0.1/golf-tee/admin-php/api/mobile.php',
+      'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
+    ];
   }
 
-  static const Duration _timeout = Duration(seconds: 4);
+  static String get baseUrl {
+    if (_resolvedBaseUrl != null) return _resolvedBaseUrl!;
+    return _candidateUrls.first;
+  }
+
+  static const Duration _timeout = Duration(milliseconds: 3000);
+
+  Future<http.Response> _httpGet(String queryString) async {
+    final candidates = _resolvedBaseUrl != null
+        ? [_resolvedBaseUrl!, ..._candidateUrls.where((u) => u != _resolvedBaseUrl)]
+        : _candidateUrls;
+
+    dynamic lastError;
+    for (final base in candidates) {
+      try {
+        final uri = Uri.parse('$base$queryString');
+        final res = await http.get(uri).timeout(_timeout);
+        if (res.statusCode == 200) {
+          _resolvedBaseUrl = base;
+          return res;
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError ?? Exception('No backend endpoint reachable');
+  }
+
+  Future<http.Response> _httpPost(Map<String, dynamic> body, [String queryString = '']) async {
+    final candidates = _resolvedBaseUrl != null
+        ? [_resolvedBaseUrl!, ..._candidateUrls.where((u) => u != _resolvedBaseUrl)]
+        : _candidateUrls;
+
+    dynamic lastError;
+    for (final base in candidates) {
+      try {
+        final uri = Uri.parse('$base$queryString');
+        final res = await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        ).timeout(_timeout);
+        if (res.statusCode == 200) {
+          _resolvedBaseUrl = base;
+          return res;
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError ?? Exception('No backend endpoint reachable');
+  }
 
   // ── 1. Fetch Home Screen Data ─────────────────────────────
   Future<Map<String, dynamic>> fetchHomeData() async {
     try {
-      final uri = Uri.parse('$baseUrl?action=home&member_id=$currentMemberId');
-      final res = await http.get(uri).timeout(_timeout);
+      final res = await _httpGet('?action=home&member_id=$currentMemberId');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok') {
@@ -103,14 +166,13 @@ class ApiService {
     double? lng,
   }) async {
     try {
-      String query = '$baseUrl?action=weather&refresh=1';
+      String query = '?action=weather&refresh=1';
       if (lat != null && lng != null) {
         query += '&lat=$lat&lng=$lng';
       } else if (location != null && location.isNotEmpty) {
         query += '&location=${Uri.encodeComponent(location)}';
       }
-      final uri = Uri.parse(query);
-      final res = await http.get(uri).timeout(_timeout);
+      final res = await _httpGet(query);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok' && data['conditions'] != null) {
@@ -150,8 +212,7 @@ class ApiService {
   // ── 2. Fetch Slots for Date & Holes ───────────────────────
   Future<List<TeeSlot>> fetchSlots(String date, int holes) async {
     try {
-      final uri = Uri.parse('$baseUrl?action=slots&date=$date&holes=$holes');
-      final res = await http.get(uri).timeout(_timeout);
+      final res = await _httpGet('?action=slots&date=$date&holes=$holes');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['slots'] is List) {
@@ -194,13 +255,7 @@ class ApiService {
     };
 
     try {
-      final uri = Uri.parse(baseUrl);
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      ).timeout(_timeout);
-
+      final res = await _httpPost(payload);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok' && data['booking'] != null) {
@@ -232,8 +287,7 @@ class ApiService {
   // ── 4. Fetch Bookings & Waitlists ──────────────────────────
   Future<Map<String, dynamic>> fetchBookings() async {
     try {
-      final uri = Uri.parse('$baseUrl?action=bookings&member_id=$currentMemberId');
-      final res = await http.get(uri).timeout(_timeout);
+      final res = await _httpGet('?action=bookings&member_id=$currentMemberId');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok') {
@@ -264,8 +318,11 @@ class ApiService {
   // ── 5. Cancel Booking ──────────────────────────────────────
   Future<bool> cancelBooking(int id) async {
     try {
-      final uri = Uri.parse('$baseUrl?action=cancel_booking&id=$id&member_id=$currentMemberId');
-      final res = await http.post(uri).timeout(_timeout);
+      final res = await _httpPost({
+        'action': 'cancel_booking',
+        'id': id,
+        'member_id': currentMemberId,
+      }, '?action=cancel_booking&id=$id&member_id=$currentMemberId');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         return data['status'] == 'ok';
@@ -294,13 +351,7 @@ class ApiService {
     };
 
     try {
-      final uri = Uri.parse(baseUrl);
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      ).timeout(_timeout);
-
+      final res = await _httpPost(payload);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok' && data['entry'] != null) {
@@ -325,8 +376,11 @@ class ApiService {
   // ── 7. Leave Waitlist ──────────────────────────────────────
   Future<bool> leaveWaitlist(int id) async {
     try {
-      final uri = Uri.parse('$baseUrl?action=leave_waitlist&id=$id&member_id=$currentMemberId');
-      final res = await http.post(uri).timeout(_timeout);
+      final res = await _httpPost({
+        'action': 'leave_waitlist',
+        'id': id,
+        'member_id': currentMemberId,
+      }, '?action=leave_waitlist&id=$id&member_id=$currentMemberId');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         return data['status'] == 'ok';
@@ -340,18 +394,12 @@ class ApiService {
   // ── 8. Save Scorecard ──────────────────────────────────────
   Future<double?> saveScore(int strokes, int diff) async {
     try {
-      final uri = Uri.parse(baseUrl);
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'action': 'save_score',
-          'strokes': strokes,
-          'diff': diff,
-          'member_id': currentMemberId,
-        }),
-      ).timeout(_timeout);
-
+      final res = await _httpPost({
+        'action': 'save_score',
+        'strokes': strokes,
+        'diff': diff,
+        'member_id': currentMemberId,
+      });
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok' && data['new_hcp'] != null) {
@@ -367,19 +415,13 @@ class ApiService {
   // ── 9. Member Sign In ──────────────────────────────────────
   Future<Member?> login({String? email, int? memberId, String? password}) async {
     try {
-      final uri = Uri.parse(baseUrl);
       final payload = {
         'action': 'login',
         if (email != null && email.isNotEmpty) 'email': email,
         if (memberId != null) 'member_id': memberId,
         if (password != null && password.isNotEmpty) 'password': password,
       };
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      ).timeout(_timeout);
-
+      final res = await _httpPost(payload);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'ok' && data['member'] != null) {
@@ -398,8 +440,7 @@ class ApiService {
   // ── 10. Fetch Club Members (for quick login/switcher) ─────
   Future<List<Member>> fetchMembers() async {
     try {
-      final uri = Uri.parse('$baseUrl?action=members');
-      final res = await http.get(uri).timeout(_timeout);
+      final res = await _httpGet('?action=members');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['members'] is List) {

@@ -22,9 +22,20 @@ class HomeScreen extends ConsumerWidget {
     final condition = ref.watch(courseProvider).condition;
     final scorecard = ref.watch(scorecardProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: () async {
+        await Future.wait([
+          ref.read(memberProvider.notifier).loadProfile(),
+          ref.read(courseProvider.notifier).loadHomeConditions(),
+          ref.read(courseProvider.notifier).loadSlots(),
+          ref.read(bookingProvider.notifier).loadBookings(),
+          ref.read(waitlistProvider.notifier).loadWaitlist(),
+        ]);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header: Greeting & Profile Avatar ─────────────
@@ -614,8 +625,9 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionHeader(String title, {String? action, VoidCallback? onActionTap}) {
     return Padding(

@@ -521,6 +521,9 @@ class CheckoutScreen extends ConsumerWidget {
                         }
                         if (lastBooking != null) {
                           ref.read(courseProvider.notifier).clearSelectedSlots();
+                          ref.read(courseProvider.notifier).loadSlots();
+                          ref.read(bookingProvider.notifier).loadBookings();
+                          ref.read(courseProvider.notifier).loadHomeConditions();
                           appNotifier.navigateTo(AppScreen.success, lastBooking.id);
                         }
                       },
