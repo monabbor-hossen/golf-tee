@@ -34,7 +34,6 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   Widget build(BuildContext context) {
     final app = ref.watch(appProvider);
     final appNotifier = ref.read(appProvider.notifier);
-    final memberState = ref.watch(memberProvider);
 
     // Auto dismiss toast after 2.4 seconds
     if (app.toastMessage.isNotEmpty && _toastTimer == null) {
@@ -48,7 +47,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
       AppScreen.checkout,
       AppScreen.success,
       AppScreen.login,
-    ].contains(app.currentScreen) || !memberState.isLoggedIn;
+    ].contains(app.currentScreen);
 
     // Active bottom tab index (mapping checkout/success/detail back to root tab)
     int activeTabIndex = 0;
@@ -184,7 +183,11 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
 
   Widget _buildCurrentScreen(AppScreen screen) {
     final memberState = ref.watch(memberProvider);
-    if (!memberState.isLoggedIn || screen == AppScreen.login) {
+    if (screen == AppScreen.login) {
+      return const LoginScreen();
+    }
+
+    if (!memberState.isLoggedIn && screen == AppScreen.profile) {
       return const LoginScreen();
     }
 

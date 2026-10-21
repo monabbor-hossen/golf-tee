@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/course_condition.dart';
 import '../models/tee_slot.dart';
@@ -105,15 +107,52 @@ class CourseState {
 
 class CourseNotifier extends Notifier<CourseState> {
   late final ApiService _api;
+  Timer? _weatherPollingTimer;
+  AppLifecycleListener? _lifecycleListener;
 
   @override
   CourseState build() {
     _api = ref.watch(apiServiceProvider);
+
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () {
+        // Automatically check if weather was updated when app returns from background
+        checkWeatherUpdate();
+      },
+    );
+
+    ref.onDispose(() {
+      _weatherPollingTimer?.cancel();
+      _lifecycleListener?.dispose();
+    });
+
     Future.microtask(() {
       loadHomeConditions();
       loadSlots();
+      _startWeatherPolling();
     });
     return CourseState();
+  }
+
+  void _startWeatherPolling() {
+    _weatherPollingTimer?.cancel();
+    // Periodically poll backend (every 30 seconds) to check if weather was refreshed or changed
+    _weatherPollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      checkWeatherUpdate();
+    });
+  }
+
+  /// Checks if weather or course conditions have updated on the backend.
+  /// If conditions changed, updates state so the UI refreshes live.
+  Future<bool> checkWeatherUpdate() async {
+    try {
+      final newCond = await _api.fetchConditions(forceRefresh: false);
+      if (newCond != null && state.condition != newCond) {
+        state = state.copyWith(condition: newCond);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   Future<void> loadHomeConditions() async {
@@ -129,11 +168,13 @@ class CourseNotifier extends Notifier<CourseState> {
     String? location,
     double? lat,
     double? lng,
+    bool forceRefresh = true,
   }) async {
     final cond = await _api.fetchConditions(
       location: location,
       lat: lat,
       lng: lng,
+      forceRefresh: forceRefresh,
     );
     if (cond != null) {
       state = state.copyWith(condition: cond);
@@ -148,6 +189,7 @@ class CourseNotifier extends Notifier<CourseState> {
       final cond = await _api.fetchConditions(
         lat: gps['lat'] as double,
         lng: gps['lng'] as double,
+        forceRefresh: true,
       );
       if (cond != null) {
         state = state.copyWith(condition: cond);

@@ -19,22 +19,23 @@ class Member {
     required this.hcp,
     required this.rounds,
     required this.spend,
-    this.memberNumber = '#PV-20418',
-    this.joined = 'Mar 2021',
+    this.memberNumber = '',
+    this.joined = '',
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0;
     return Member(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 1,
-      name: json['name']?.toString() ?? 'James Carter',
-      email: json['email']?.toString() ?? 'james.carter@mail.com',
-      phone: json['phone']?.toString() ?? '(555) 301-2201',
-      tier: json['tier']?.toString() ?? 'Gold',
-      hcp: (json['hcp'] is num) ? (json['hcp'] as num).toDouble() : double.tryParse(json['hcp'].toString()) ?? 8.4,
-      rounds: json['rounds'] is int ? json['rounds'] : int.tryParse(json['rounds'].toString()) ?? 42,
-      spend: (json['spend'] is num) ? (json['spend'] as num).toDouble() : double.tryParse(json['spend'].toString()) ?? 4820.0,
-      memberNumber: json['member_number']?.toString() ?? '#PV-20418',
-      joined: json['joined']?.toString() ?? 'Mar 2021',
+      id: rawId,
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      tier: json['tier']?.toString() ?? 'Standard',
+      hcp: (json['hcp'] is num) ? (json['hcp'] as num).toDouble() : double.tryParse(json['hcp'].toString()) ?? 0.0,
+      rounds: json['rounds'] is int ? json['rounds'] : int.tryParse(json['rounds'].toString()) ?? 0,
+      spend: (json['spend'] is num) ? (json['spend'] as num).toDouble() : double.tryParse(json['spend'].toString()) ?? 0.0,
+      memberNumber: json['member_number']?.toString() ?? (rawId > 0 ? '#PV-${rawId.toString().padLeft(5, '0')}' : ''),
+      joined: json['joined']?.toString() ?? '',
     );
   }
 
@@ -62,5 +63,20 @@ class Member {
       memberNumber: memberNumber ?? this.memberNumber,
       joined: joined ?? this.joined,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'tier': tier,
+      'hcp': hcp,
+      'rounds': rounds,
+      'spend': spend,
+      'member_number': memberNumber,
+      'joined': joined,
+    };
   }
 }

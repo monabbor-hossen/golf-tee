@@ -56,8 +56,8 @@ class ScorecardNotifier extends Notifier<ScorecardState> {
   ScorecardState build() {
     _api = ref.watch(apiServiceProvider);
     return ScorecardState(
-      scores: [4, 5, 4, 4, 5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      currentHole: 6,
+      scores: List.filled(18, 0),
+      currentHole: 0,
     );
   }
 

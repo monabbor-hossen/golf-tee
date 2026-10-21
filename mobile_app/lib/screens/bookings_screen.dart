@@ -6,6 +6,7 @@ import '../models/waitlist_entry.dart';
 import '../providers/app_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/course_provider.dart';
+import '../providers/member_provider.dart';
 import '../providers/waitlist_provider.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/top_bar.dart';
@@ -134,12 +135,14 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
   }
 
   Widget _buildUpcomingList(List<Booking> list) {
+    final isLoggedIn = ref.watch(memberProvider).isLoggedIn;
     if (list.isEmpty) {
       return _buildEmptyState(
-        title: 'No upcoming rounds',
-        actionLabel: 'Book a tee time',
-        onTap: () =>
-            ref.read(appProvider.notifier).navigateTo(AppScreen.book),
+        title: isLoggedIn ? 'No upcoming rounds' : 'Sign in to see your bookings',
+        actionLabel: isLoggedIn ? 'Book a tee time' : 'Sign in',
+        onTap: () => isLoggedIn
+            ? ref.read(appProvider.notifier).navigateTo(AppScreen.book)
+            : ref.read(appProvider.notifier).navigateTo(AppScreen.login),
       );
     }
 

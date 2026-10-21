@@ -97,6 +97,11 @@ class SettingController
                     $this->settingRepo->set($flag, $request->input($flag) !== null ? '1' : '0');
                 }
 
+                // Invalidate weather cache and refresh conditions so changes propagate immediately
+                $weatherService = new \App\Services\WeatherService($this->settingRepo);
+                $weatherService->clearCache();
+                $weatherService->getConditions(forceRefresh: true);
+
                 $this->activityRepo->log('Settings updated', "{$tab} preferences changed", 'sand');
                 Session::setFlash('settings_saved', '1');
                 Response::redirect('settings.php?tab=' . urlencode($tab));

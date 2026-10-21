@@ -164,7 +164,7 @@ class CheckoutScreen extends ConsumerWidget {
                           // Lead Golfer (You)
                           _buildPartnerAvatar(
                             label: 'You',
-                            initials: 'JC',
+                            initials: _initials(member.name),
                             isYou: true,
                             isSelected: true,
                             onTap: null,
@@ -308,25 +308,79 @@ class CheckoutScreen extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Column(
                       children: [
-                        ...cards.map((c) {
-                          final isSel = booking.selectedCardId == c.id;
-                          return Padding(
+                        if (cards.isEmpty)
+                          Padding(
                             padding: const EdgeInsets.only(bottom: 8),
-                            child: _buildPaymentRow(
-                              id: c.id,
-                              title: '${c.brand} •••• ${c.last4}',
-                              subtitle: 'Expires ${c.exp}',
-                              isSelected: isSel,
-                              onTap: () => bookingNotifier.setCard(c.id),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.borderLight),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.credit_card_outlined, size: 20, color: Colors.grey.shade400),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'No saved cards. Add a card below or pay with Apple Pay.',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        }),
+                          )
+                        else
+                          ...cards.map((c) {
+                            final isSel = booking.selectedCardId == c.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _buildPaymentRow(
+                                id: c.id,
+                                title: '${c.brand} •••• ${c.last4}',
+                                subtitle: 'Expires ${c.exp}',
+                                isSelected: isSel,
+                                onTap: () => bookingNotifier.setCard(c.id),
+                              ),
+                            );
+                          }),
                         _buildPaymentRow(
                           id: 'apple',
                           title: 'Apple Pay',
                           subtitle: 'Pay with Face ID',
                           isSelected: booking.selectedCardId == 'apple',
                           onTap: () => bookingNotifier.setCard('apple'),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () => _showAddCardModal(context, ref),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.borderLight),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.forest),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Add new payment card',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.forest,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -508,6 +562,11 @@ class CheckoutScreen extends ConsumerWidget {
                           : 'Pay \$${grandTotal.toInt()}',
                       isLoading: booking.isBookingLoading,
                       onPressed: () async {
+                        if (!ref.read(memberProvider).isLoggedIn) {
+                          appNotifier.showToast('Please sign in to complete your booking');
+                          appNotifier.navigateTo(AppScreen.login);
+                          return;
+                        }
                         Booking? lastBooking;
                         final perSlotTotal = grandTotal / selectedSlotsCount;
                         for (final min in selectedMins) {
@@ -734,5 +793,99 @@ class CheckoutScreen extends ConsumerWidget {
 
   static String _initials(String name) {
     return name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
+  }
+
+  void _showAddCardModal(BuildContext context, WidgetRef ref) {
+    final numCtrl = TextEditingController();
+    final expCtrl = TextEditingController();
+    final appNotifier = ref.read(appProvider.notifier);
+    final memberNotifier = ref.read(memberProvider.notifier);
+    final bookingNotifier = ref.read(bookingProvider.notifier);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Add Payment Card',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
+            ),
+            const SizedBox(height: 14),
+            const Text('Card Number', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: numCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: '1234 5678 9012 3456',
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.border)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Expiry (MM/YY)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: expCtrl,
+              keyboardType: TextInputType.datetime,
+              decoration: InputDecoration(
+                hintText: 'MM/YY',
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.border)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            PrimaryButton(
+              text: 'Save and Use This Card',
+              onPressed: () async {
+                final rawNum = numCtrl.text.replaceAll(RegExp(r'\D'), '');
+                if (rawNum.length < 13) {
+                  appNotifier.showToast('Please enter a valid card number');
+                  return;
+                }
+                final exp = expCtrl.text.trim().isNotEmpty ? expCtrl.text.trim() : '12/28';
+                final card = await memberNotifier.addCard(
+                  cardNumber: rawNum,
+                  exp: exp,
+                  isDefault: true,
+                );
+                if (card != null) {
+                  bookingNotifier.setCard(card.id);
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                  }
+                  appNotifier.showToast('Card saved and selected!');
+                } else {
+                  appNotifier.showToast('Could not save card. Please check details.');
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

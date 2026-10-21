@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/booking.dart';
 import '../models/course_condition.dart';
 import '../models/member.dart';
+import '../models/payment_card.dart';
 import '../models/tee_slot.dart';
 import '../models/waitlist_entry.dart';
 
@@ -21,8 +22,8 @@ class AuthResult {
 }
 
 class ApiService {
-  int currentMemberId = 1;
-  String currentMemberName = 'James Carter';
+  int currentMemberId = 0;
+  String currentMemberName = '';
 
   static String? _resolvedBaseUrl;
 
@@ -36,16 +37,16 @@ class ApiService {
     try {
       if (Platform.isAndroid) {
         return const [
-          'http://10.0.2.2/golf-tee/admin-php/api/mobile.php',
           'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
           'http://localhost/golf-tee/admin-php/api/mobile.php',
+          'http://10.0.2.2/golf-tee/admin-php/api/mobile.php',
         ];
       }
     } catch (_) {}
     return const [
+      'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
       'http://localhost/golf-tee/admin-php/api/mobile.php',
       'http://127.0.0.1/golf-tee/admin-php/api/mobile.php',
-      'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
     ];
   }
 
@@ -116,29 +117,17 @@ class ApiService {
       debugPrint('ApiService.fetchHomeData error (using fallback): $e');
     }
 
-    // Offline fallback dynamic to current member
-    final membersList = [
-      Member(id: 1, name: 'James Carter', email: 'james.carter@mail.com', phone: '(555) 301-2201', tier: 'Gold', hcp: 8.4, rounds: 42, spend: 4820.0),
-      Member(id: 2, name: 'Mina Lee', email: 'mina.lee@mail.com', phone: '(555) 301-4410', tier: 'Gold', hcp: 5.1, rounds: 67, spend: 7310.0),
-      Member(id: 3, name: 'Raj Patel', email: 'r.patel@mail.com', phone: '(555) 301-8812', tier: 'Silver', hcp: 14.2, rounds: 23, spend: 2140.0),
-      Member(id: 4, name: 'Sofia Kim', email: 'sofia.k@mail.com', phone: '(555) 301-0937', tier: 'Standard', hcp: 21.0, rounds: 6, spend: 410.0),
-      Member(id: 5, name: 'Alejandro Gomez', email: 'agomez@mail.com', phone: '(555) 301-5521', tier: 'Silver', hcp: 11.7, rounds: 31, spend: 2980.0),
-      Member(id: 7, name: 'Daniel Brown', email: 'd.brown@mail.com', phone: '(555) 301-3390', tier: 'Gold', hcp: 3.9, rounds: 88, spend: 11250.0),
-      Member(id: 8, name: 'Lucia Rossi', email: 'lucia.rossi@mail.com', phone: '(555) 301-6604', tier: 'Silver', hcp: 16.5, rounds: 19, spend: 1720.0),
-      Member(id: 10, name: 'Priya Shah', email: 'priya.s@mail.com', phone: '(555) 301-9183', tier: 'Gold', hcp: 9.6, rounds: 54, spend: 6040.0),
-    ];
-    final activeMember = membersList.firstWhere(
-      (m) => m.id == currentMemberId,
-      orElse: () => Member(
-        id: currentMemberId,
-        name: currentMemberName,
-        email: '${currentMemberName.toLowerCase().replaceAll(' ', '.')}@mail.com',
-        phone: '(555) 301-2201',
-        tier: 'Gold',
-        hcp: 8.4,
-        rounds: 42,
-        spend: 4820.0,
-      ),
+    // Fallback minimal active member without dummy lists
+    final activeMember = Member(
+      id: currentMemberId,
+      name: currentMemberName,
+      email: '',
+      phone: '',
+      tier: 'Standard',
+      hcp: 0.0,
+      rounds: 0,
+      spend: 0.0,
+      memberNumber: currentMemberId > 0 ? '#PV-${currentMemberId.toString().padLeft(5, '0')}' : '',
     );
 
     return {
@@ -176,9 +165,10 @@ class ApiService {
     String? location,
     double? lat,
     double? lng,
+    bool forceRefresh = false,
   }) async {
     try {
-      String query = '?action=weather&refresh=1';
+      String query = '?action=weather${forceRefresh ? '&refresh=1' : ''}';
       if (lat != null && lng != null) {
         query += '&lat=$lat&lng=$lng';
       } else if (location != null && location.isNotEmpty) {
@@ -321,10 +311,14 @@ class ApiService {
         }
       }
     } catch (e) {
-      debugPrint('ApiService.fetchBookings error (using seeds): $e');
+      debugPrint('ApiService.fetchBookings error: $e');
     }
 
-    return _seedBookings();
+    return {
+      'upcoming': <Booking>[],
+      'waitlist': <WaitlistEntry>[],
+      'past': <Booking>[],
+    };
   }
 
   // ── 5. Cancel Booking ──────────────────────────────────────
@@ -424,6 +418,85 @@ class ApiService {
     return null;
   }
 
+  // ── 8b. Real Payment Cards ─────────────────────────────────
+  Future<List<PaymentCard>> fetchCards() async {
+    try {
+      final res = await _httpGet('?action=cards&member_id=$currentMemberId');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'ok' && data['cards'] is List) {
+          return (data['cards'] as List)
+              .map((c) => PaymentCard.fromJson(c as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchCards error: $e');
+    }
+    return const [];
+  }
+
+  Future<PaymentCard?> addCard({
+    required String cardNumber,
+    required String exp,
+    String? cardHolder,
+    bool isDefault = false,
+  }) async {
+    try {
+      final res = await _httpPost({
+        'action': 'add_card',
+        'member_id': currentMemberId,
+        'card_number': cardNumber,
+        'exp': exp,
+        'card_holder': cardHolder ?? currentMemberName,
+        'is_default': isDefault ? 1 : 0,
+      });
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'ok' && data['card'] != null) {
+          return PaymentCard.fromJson(data['card'] as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.addCard error: $e');
+    }
+    return null;
+  }
+
+  Future<bool> setDefaultCard(String cardId) async {
+    try {
+      final res = await _httpPost({
+        'action': 'set_default_card',
+        'id': cardId,
+        'member_id': currentMemberId,
+      });
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return data['status'] == 'ok';
+      }
+    } catch (e) {
+      debugPrint('ApiService.setDefaultCard error: $e');
+    }
+    return false;
+  }
+
+  Future<bool> deleteCard(String cardId) async {
+    try {
+      final res = await _httpPost({
+        'action': 'delete_card',
+        'id': cardId,
+        'member_id': currentMemberId,
+      });
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return data['status'] == 'ok';
+      }
+    } catch (e) {
+      debugPrint('ApiService.deleteCard error: $e');
+    }
+    return false;
+  }
+
   // ── 9. Member Sign In ──────────────────────────────────────
   Future<AuthResult> login({String? email, int? memberId, String? password}) async {
     try {
@@ -514,16 +587,7 @@ class ApiService {
       debugPrint('ApiService.fetchMembers error: $e');
     }
 
-    return [
-      Member(id: 1, name: 'James Carter', email: 'james.carter@mail.com', phone: '(555) 301-2201', tier: 'Gold', hcp: 8.4, rounds: 42, spend: 4820),
-      Member(id: 2, name: 'Mina Lee', email: 'mina.lee@mail.com', phone: '(555) 301-4410', tier: 'Gold', hcp: 5.1, rounds: 67, spend: 7310),
-      Member(id: 3, name: 'Raj Patel', email: 'r.patel@mail.com', phone: '(555) 301-8812', tier: 'Silver', hcp: 14.2, rounds: 23, spend: 2140),
-      Member(id: 4, name: 'Sofia Kim', email: 'sofia.k@mail.com', phone: '(555) 301-0937', tier: 'Standard', hcp: 21.0, rounds: 6, spend: 410),
-      Member(id: 5, name: 'Alejandro Gomez', email: 'agomez@mail.com', phone: '(555) 301-5521', tier: 'Silver', hcp: 11.7, rounds: 31, spend: 2980),
-      Member(id: 7, name: 'Daniel Brown', email: 'd.brown@mail.com', phone: '(555) 301-3390', tier: 'Gold', hcp: 3.9, rounds: 88, spend: 11250),
-      Member(id: 8, name: 'Lucia Rossi', email: 'lucia.rossi@mail.com', phone: '(555) 301-6604', tier: 'Silver', hcp: 16.5, rounds: 19, spend: 1720),
-      Member(id: 10, name: 'Priya Shah', email: 'priya.s@mail.com', phone: '(555) 301-9183', tier: 'Gold', hcp: 9.6, rounds: 54, spend: 6040),
-    ];
+    return <Member>[];
   }
 
   // ── Helpers & Offline Seeds ────────────────────────────────
@@ -538,6 +602,9 @@ class ApiService {
   static List<TeeSlot> _generateLocalSlots(String date, int holes) {
     final slots = <TeeSlot>[];
     final isWeekend = DateTime.parse(date).weekday >= 6;
+    final now = DateTime.now();
+    final isToday = date == now.toIso8601String().split('T')[0];
+    final nowMin = now.hour * 60 + now.minute;
 
     for (int m = 420; m <= 1070; m += 10) {
       final price = (m >= 900)
@@ -546,15 +613,8 @@ class ApiService {
               ? (holes == 18 ? 110.0 : 62.0)
               : (holes == 18 ? 85.0 : 48.0);
 
-      SlotState state = SlotState.available;
-      final hash = (m * 7 + (holes == 9 ? 3 : 0)) % 17;
-      if (hash < 4) {
-        state = SlotState.booked;
-      } else if (hash < 6) {
-        state = SlotState.waitlist;
-      } else if (hash == 6) {
-        state = SlotState.locked;
-      }
+      // Only lock slots that have already passed today
+      SlotState state = (isToday && m < nowMin) ? SlotState.locked : SlotState.available;
 
       slots.add(TeeSlot(
         min: m,
@@ -566,76 +626,5 @@ class ApiService {
     }
     return slots;
   }
-
-  static Map<String, dynamic> _seedBookings() {
-    final now = DateTime.now();
-    final d2 = now.add(const Duration(days: 2)).toIso8601String().split('T')[0];
-    final d6 = now.add(const Duration(days: 6)).toIso8601String().split('T')[0];
-    final dPast = now.subtract(const Duration(days: 10)).toIso8601String().split('T')[0];
-
-    return {
-      'upcoming': [
-        Booking(
-          id: 1,
-          date: d2,
-          min: 450,
-          time: '7:30 AM',
-          holes: 18,
-          players: 4,
-          partners: ['Mina Lee', 'Daniel Brown'],
-          addons: ['cart'],
-          total: 386.0,
-          card: 'v',
-          tee: 'Hole 1',
-        ),
-        Booking(
-          id: 2,
-          date: d6,
-          min: 540,
-          time: '9:00 AM',
-          holes: 9,
-          players: 2,
-          partners: ['Priya Shah'],
-          addons: [],
-          total: 86.0,
-          card: 'v',
-          tee: 'Hole 10',
-        ),
-      ],
-      'waitlist': [
-        WaitlistEntry(
-          id: 1,
-          date: now.add(const Duration(days: 1)).toIso8601String().split('T')[0],
-          min: 480,
-          time: '8:00 AM',
-          holes: 18,
-          players: 2,
-          position: 1,
-        ),
-        WaitlistEntry(
-          id: 2,
-          date: now.add(const Duration(days: 4)).toIso8601String().split('T')[0],
-          min: 430,
-          time: '7:10 AM',
-          holes: 18,
-          players: 4,
-          position: 3,
-        ),
-      ],
-      'past': [
-        Booking(
-          id: 3,
-          date: dPast,
-          min: 500,
-          time: '8:20 AM',
-          holes: 18,
-          players: 4,
-          addons: ['cart'],
-          total: 386.0,
-          status: 'past',
-          score: 82,
-        ),
-      ]
-    };
-  }
 }
+

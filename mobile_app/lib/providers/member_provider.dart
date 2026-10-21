@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/member.dart';
 import '../models/payment_card.dart';
 import '../services/api_service.dart';
 import 'booking_provider.dart';
 import 'course_provider.dart';
+import 'waitlist_provider.dart';
 
 class MemberState {
   final Member member;
@@ -17,23 +21,23 @@ class MemberState {
 
   MemberState({
     Member? member,
-    this.isLoggedIn = true,
+    this.isLoggedIn = false,
     this.isLoading = false,
     this.loginError,
     this.cards = const [],
-    this.hcpHistory = const [10.2, 9.9, 9.7, 9.2, 9.0, 8.7, 8.4],
+    this.hcpHistory = const [],
     this.notifPrefs = const {'remind': true, 'wait': true, 'promo': false},
-    this.bestScore = 79,
+    this.bestScore = 0,
   }) : member = member ??
             Member(
-              id: 1,
-              name: 'James Carter',
-              email: 'james.carter@mail.com',
-              phone: '(555) 301-2201',
-              tier: 'Gold',
-              hcp: 8.4,
-              rounds: 42,
-              spend: 4820.0,
+              id: 0,
+              name: '',
+              email: '',
+              phone: '',
+              tier: 'Standard',
+              hcp: 0.0,
+              rounds: 0,
+              spend: 0.0,
             );
 
   MemberState copyWith({
@@ -62,28 +66,52 @@ class MemberState {
 class MemberNotifier extends Notifier<MemberState> {
   late final ApiService _api;
 
+  static File _getSessionFile() {
+    return File('${Directory.systemTemp.path}/golf_tee_session.json');
+  }
+
   @override
   MemberState build() {
     _api = ref.watch(apiServiceProvider);
-    Future.microtask(() => loadProfile());
+    Future.microtask(() => _restoreSession());
     return MemberState(
-      cards: [
-        PaymentCard(
-          id: 'v',
-          brand: 'Visa',
-          last4: '4242',
-          exp: '09/27',
-          isDefault: true,
-        ),
-        PaymentCard(
-          id: 'm',
-          brand: 'Mastercard',
-          last4: '8810',
-          exp: '03/26',
-          isDefault: false,
-        ),
-      ],
+      isLoggedIn: false,
+      cards: const [],
     );
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final file = _getSessionFile();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = jsonDecode(content);
+        if (data is Map<String, dynamic> && data['member'] != null) {
+          final m = Member.fromJson(data['member'] as Map<String, dynamic>);
+          _api.currentMemberId = m.id;
+          _api.currentMemberName = m.name;
+          state = state.copyWith(member: m, isLoggedIn: true);
+          await loadProfile();
+          ref.read(bookingProvider.notifier).loadBookings();
+          ref.read(waitlistProvider.notifier).loadWaitlist();
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring member session: $e');
+    }
+  }
+
+  Future<void> _saveSession(Member m) async {
+    try {
+      final file = _getSessionFile();
+      await file.writeAsString(jsonEncode({
+        'member': m.toJson(),
+        'saved_at': DateTime.now().toIso8601String(),
+      }));
+    } catch (e) {
+      debugPrint('Error saving session: $e');
+    }
   }
 
   Future<void> loadProfile() async {
@@ -93,6 +121,7 @@ class MemberNotifier extends Notifier<MemberState> {
         member: Member.fromJson(data['member']),
       );
     }
+    await loadCards();
   }
 
   Future<bool> loginWithEmail(String email, [String? password]) async {
@@ -101,6 +130,7 @@ class MemberNotifier extends Notifier<MemberState> {
     if (result.success && result.member != null) {
       _api.currentMemberId = result.member!.id;
       _api.currentMemberName = result.member!.name;
+      await _saveSession(result.member!);
       state = state.copyWith(
         member: result.member,
         isLoggedIn: true,
@@ -109,6 +139,7 @@ class MemberNotifier extends Notifier<MemberState> {
       );
       await loadProfile();
       ref.read(bookingProvider.notifier).loadBookings();
+      ref.read(waitlistProvider.notifier).loadWaitlist();
       return true;
     } else {
       state = state.copyWith(
@@ -125,6 +156,7 @@ class MemberNotifier extends Notifier<MemberState> {
     if (result.success && result.member != null) {
       _api.currentMemberId = result.member!.id;
       _api.currentMemberName = result.member!.name;
+      await _saveSession(result.member!);
       state = state.copyWith(
         member: result.member,
         isLoggedIn: true,
@@ -133,6 +165,7 @@ class MemberNotifier extends Notifier<MemberState> {
       );
       await loadProfile();
       ref.read(bookingProvider.notifier).loadBookings();
+      ref.read(waitlistProvider.notifier).loadWaitlist();
       return true;
     } else {
       state = state.copyWith(
@@ -148,6 +181,7 @@ class MemberNotifier extends Notifier<MemberState> {
     state = state.copyWith(isLoading: true, loginError: null);
     _api.currentMemberId = m.id;
     _api.currentMemberName = m.name;
+    await _saveSession(m);
     state = state.copyWith(
       member: m,
       isLoggedIn: true,
@@ -156,14 +190,20 @@ class MemberNotifier extends Notifier<MemberState> {
     );
     await loadProfile();
     ref.read(bookingProvider.notifier).loadBookings();
+    ref.read(waitlistProvider.notifier).loadWaitlist();
     return true;
   }
 
-  void logout() {
-    state = state.copyWith(
-      isLoggedIn: false,
-      loginError: null,
-    );
+  Future<void> logout() async {
+    try {
+      final file = _getSessionFile();
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+    _api.currentMemberId = 0;
+    _api.currentMemberName = '';
+    state = MemberState();
   }
 
   Future<List<Member>> getClubMembers() async {
@@ -176,27 +216,44 @@ class MemberNotifier extends Notifier<MemberState> {
     state = state.copyWith(notifPrefs: updated);
   }
 
-  void setDefaultCard(String id) {
+  Future<void> loadCards() async {
+    final cards = await _api.fetchCards();
+    state = state.copyWith(cards: cards);
+  }
+
+  Future<void> setDefaultCard(String id) async {
     final updated = state.cards.map((c) {
       return c.copyWith(isDefault: c.id == id);
     }).toList();
     state = state.copyWith(cards: updated);
+    await _api.setDefaultCard(id);
+    await loadCards();
   }
 
-  void removeCard(String id) {
+  Future<bool> removeCard(String id) async {
     final updated = state.cards.where((c) => c.id != id).toList();
     state = state.copyWith(cards: updated);
+    final success = await _api.deleteCard(id);
+    await loadCards();
+    return success;
   }
 
-  void addCard(String brand, String last4, String exp) {
-    final newCard = PaymentCard(
-      id: 'c_${DateTime.now().millisecondsSinceEpoch}',
-      brand: brand,
-      last4: last4,
+  Future<PaymentCard?> addCard({
+    required String cardNumber,
+    required String exp,
+    String? cardHolder,
+    bool isDefault = false,
+  }) async {
+    final card = await _api.addCard(
+      cardNumber: cardNumber,
       exp: exp,
-      isDefault: false,
+      cardHolder: cardHolder,
+      isDefault: isDefault,
     );
-    state = state.copyWith(cards: [...state.cards, newCard]);
+    if (card != null) {
+      await loadCards();
+    }
+    return card;
   }
 
   void updateHandicap(double newHcp) {

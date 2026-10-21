@@ -147,7 +147,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               children: [
                                 _buildMetric('Handicap', m.hcp.toStringAsFixed(1)),
                                 _buildMetric('Rounds', '${m.rounds}'),
-                                _buildMetric('Best score', '${memberState.bestScore}'),
+                                 _buildMetric('Best score', memberState.bestScore > 0 ? '${memberState.bestScore}' : '—'),
                               ],
                             ),
                           ),
@@ -156,7 +156,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 18),
 
-                    // Handicap Trend Chart
+                    // Handicap Trend Section
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -165,11 +165,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: Border.all(color: AppColors.borderLight),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
+                              const Text(
                                 'Handicap trend',
                                 style: TextStyle(
                                   fontSize: 15,
@@ -177,28 +178,71 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   color: AppColors.textMain,
                                 ),
                               ),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.arrow_downward_rounded,
-                                    size: 14,
-                                    color: AppColors.forest,
-                                  ),
-                                  SizedBox(width: 2),
-                                  Text(
-                                    '0.8 this season',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
+                              if (hcpHist.length >= 2) ...[
+                                Row(
+                                  children: [
+                                    Icon(
+                                      (hcpHist.first - hcpHist.last) >= 0
+                                          ? Icons.arrow_downward_rounded
+                                          : Icons.arrow_upward_rounded,
+                                      size: 14,
                                       color: AppColors.forest,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '${(hcpHist.first - hcpHist.last).abs().toStringAsFixed(1)} this season',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.forest,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ] else ...[
+                                const Text(
+                                  'Season stats',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (hcpHist.length >= 2) ...[
+                            HandicapChart(history: hcpHist),
+                          ] else ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              alignment: Alignment.center,
+                              child: Column(
+                                children: [
+                                  Icon(Icons.show_chart_rounded, size: 36, color: Colors.grey.shade300),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No handicap history yet',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Play rounds and record scorecards to track your handicap trend.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade400,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          HandicapChart(history: hcpHist),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -230,10 +274,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    ...cards.map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _buildCardRow(c, notifier, appNotifier),
-                        )),
+                    if (cards.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.borderLight),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.credit_card_outlined, color: Colors.grey.shade400, size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'No saved cards',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textMain,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Add a card for 1-tap checkout on tee times',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() => _showAddCard = true),
+                              child: const Text(
+                                'Add',
+                                style: TextStyle(
+                                  color: AppColors.forest,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ...cards.map((c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildCardRow(c, notifier, appNotifier),
+                          )),
                     const SizedBox(height: 16),
 
                     // Notifications Settings
@@ -291,12 +394,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           _buildMenuLink(
                             title: 'Personal details',
                             onTap: () => _showPersonalDetails(context, m),
-                          ),
-                          const Divider(height: 1, color: AppColors.borderLight),
-                          _buildMenuLink(
-                            title: 'Switch active member',
-                            onTap: () => _showMemberSwitcher(
-                                context, notifier, appNotifier),
                           ),
                           const Divider(height: 1, color: AppColors.borderLight),
                           _buildMenuLink(
@@ -644,18 +741,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 20),
               PrimaryButton(
                 text: 'Save card',
-                onPressed: () {
+                onPressed: () async {
                   final rawNum = _numCtrl.text.replaceAll(RegExp(r'\D'), '');
-                  final last4 =
-                      rawNum.length >= 4 ? rawNum.substring(rawNum.length - 4) : '4242';
-                  final exp = _expCtrl.text.isNotEmpty ? _expCtrl.text : '12/28';
-                  final brand = rawNum.startsWith('5') ? 'Mastercard' : 'Visa';
-
-                  notifier.addCard(brand, last4, exp);
-                  setState(() => _showAddCard = false);
-                  _numCtrl.clear();
-                  _expCtrl.clear();
-                  appNotifier.showToast('Card saved successfully!');
+                  if (rawNum.length < 13) {
+                    appNotifier.showToast('Please enter a valid 16-digit card number');
+                    return;
+                  }
+                  final exp = _expCtrl.text.trim().isNotEmpty ? _expCtrl.text.trim() : '12/28';
+                  final card = await notifier.addCard(
+                    cardNumber: rawNum,
+                    exp: exp,
+                  );
+                  if (!mounted) return;
+                  if (card != null) {
+                    setState(() => _showAddCard = false);
+                    _numCtrl.clear();
+                    _expCtrl.clear();
+                    appNotifier.showToast('Card saved to your account!');
+                  } else {
+                    appNotifier.showToast('Could not save card. Please check details.');
+                  }
                 },
               ),
             ],
@@ -806,113 +911,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Future<void> _showMemberSwitcher(
-    BuildContext context,
-    MemberNotifier notifier,
-    AppNotifier appNotifier,
-  ) async {
-    final members = await notifier.getClubMembers();
-    if (!context.mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(ctx).size.height * 0.75,
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Switch Club Member',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textMain,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const Text(
-              'Select any active member to test accounts and view real data:',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: ListView.separated(
-                itemCount: members.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, idx) {
-                  final m = members[idx];
-                  return ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: AppColors.borderLight),
-                    ),
-                    tileColor: AppColors.offwhite,
-                    leading: CircleAvatar(
-                      backgroundColor: AppColors.forest.withValues(alpha: 0.15),
-                      child: Text(
-                        _initials(m.name),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.forest,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      m.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${m.tier} · HCP ${m.hcp} · ${m.email}',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 13),
-                    onTap: () async {
-                      Navigator.pop(ctx);
-                      await notifier.loginAsMember(m);
-                      appNotifier.showToast('Switched to ${m.name}');
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showHelpSupport(BuildContext context, AppNotifier appNotifier) {
     showModalBottomSheet(

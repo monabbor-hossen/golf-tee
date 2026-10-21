@@ -114,6 +114,22 @@ switch ($action) {
         handleSaveScore($pdo, $jsonBody, $currentMemberId);
         break;
 
+    case 'cards':
+        handleCards($pdo, $currentMemberId);
+        break;
+
+    case 'add_card':
+        handleAddCard($pdo, $jsonBody, $currentMemberId);
+        break;
+
+    case 'set_default_card':
+        handleSetDefaultCard($pdo, $jsonBody, $currentMemberId);
+        break;
+
+    case 'delete_card':
+        handleDeleteCard($pdo, $jsonBody, $currentMemberId);
+        break;
+
     default:
         echo json_encode([
             'status' => 'ok',
@@ -144,18 +160,21 @@ function handleHome(PDO $pdo, int $memberId): void
     // 1. Member Profile
     $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend, next_tee FROM members WHERE id = ?");
     $stmt->execute([$memberId]);
-    $member = $stmt->fetch();
-    if (!$member) {
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($member) {
+        $member['member_number'] = sprintf('#PV-%05d', (int)$member['id']);
+    } else {
         $member = [
-            'id' => 1,
-            'name' => 'James Carter',
-            'email' => 'james.carter@mail.com',
-            'tier' => 'Gold',
-            'hcp' => 8.4,
-            'rounds' => 42,
-            'spend' => 4820.00,
+            'id' => $memberId,
+            'name' => 'Member',
+            'email' => '',
+            'tier' => 'Standard',
+            'hcp' => 0.0,
+            'rounds' => 0,
+            'spend' => 0.00,
             'status' => 'Active',
-            'joined' => 'Mar 2021'
+            'joined' => '',
+            'member_number' => sprintf('#PV-%05d', $memberId)
         ];
     }
 
@@ -329,23 +348,13 @@ function handleSlots(PDO $pdo): void
 
         $state = 'available';
         if ($isToday && $m < $nowMinutes) {
-            $state = 'locked';
+            $state = 'locked'; // Past time slot for today
         } elseif (isset($blocked[$m])) {
-            $state = 'locked';
+            $state = 'locked'; // Blocked by admin in tee sheet
         } elseif (isset($booked[$m])) {
-            $state = 'booked';
+            $state = 'booked'; // Booked in tee sheet
         } elseif (isset($waitlist[$m])) {
-            $state = 'waitlist';
-        } else {
-            // Simulated realistic bookings pattern matching Figma design
-            $hash = ((strtotime($date) + 20) * 131 + $m * 7 + ($holes === 9 ? 3 : 0)) % 17;
-            if ($hash < 4) {
-                $state = 'booked';
-            } elseif ($hash < 6) {
-                $state = 'waitlist';
-            } elseif ($hash === 6) {
-                $state = 'locked';
-            }
+            $state = 'waitlist'; // Has waitlist entries
         }
 
         $slots[] = [
@@ -403,12 +412,23 @@ function handleBook(PDO $pdo, array $body, int $memberId): void
         $stmt->execute([$date, $slot, $tee, $name, $players, $holes, $notes, $memberId]);
         $bookingId = (int)$pdo->lastInsertId();
 
+        // Determine payment card method
+        $paymentMethod = 'Credit Card';
+        if (!empty($card)) {
+            $cStmt = $pdo->prepare("SELECT brand, last4 FROM member_cards WHERE id = ? AND member_id = ?");
+            $cStmt->execute([(int)$card, $memberId]);
+            $foundCard = $cStmt->fetch(PDO::FETCH_ASSOC);
+            if ($foundCard) {
+                $paymentMethod = $foundCard['brand'] . ' *' . $foundCard['last4'];
+            }
+        }
+
         // Record in transactions ledger
         $txnId = 'TXN-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
         $nowMin = (int)date('H') * 60 + (int)date('i');
         $stmt = $pdo->prepare("
             INSERT INTO transactions (id, txn_date, txn_time, name, description, type, method, amount, status, ref, member_id)
-            VALUES (?, ?, ?, ?, ?, 'Green fee', 'Credit Card', ?, 'Paid', ?, ?)
+            VALUES (?, ?, ?, ?, ?, 'Green fee', ?, ?, 'Paid', ?, ?)
         ");
         $stmt->execute([
             $txnId,
@@ -416,6 +436,7 @@ function handleBook(PDO $pdo, array $body, int $memberId): void
             $nowMin,
             $name,
             "Tee time reservation ($holes holes, $players players)",
+            $paymentMethod,
             $total,
             (string)$bookingId,
             $memberId
@@ -668,33 +689,159 @@ function handleProfile(PDO $pdo, int $memberId): void
 {
     $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend FROM members WHERE id = ?");
     $stmt->execute([$memberId]);
-    $member = $stmt->fetch();
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$member) {
-        $member = [
-            'id' => 1,
-            'name' => 'James Carter',
-            'email' => 'james.carter@mail.com',
-            'tier' => 'Gold',
-            'hcp' => 8.4,
-            'rounds' => 42,
-            'spend' => 4820.00
+        http_response_code(404);
+        echo json_encode(['status' => 'error', 'message' => 'Member not found']);
+        return;
+    }
+
+    $member['member_number'] = sprintf('#PV-%05d', (int)$member['id']);
+
+    $stmtCards = $pdo->prepare("SELECT id, brand, card_holder, last4, CONCAT(exp_month, '/', SUBSTRING(exp_year, 3, 2)) as exp, is_default as isDefault FROM member_cards WHERE member_id = ? ORDER BY is_default DESC, id DESC");
+    $stmtCards->execute([$memberId]);
+    $cards = [];
+    while ($c = $stmtCards->fetch(PDO::FETCH_ASSOC)) {
+        $cards[] = [
+            'id' => (string)$c['id'],
+            'brand' => $c['brand'],
+            'card_holder' => $c['card_holder'] ?? '',
+            'last4' => $c['last4'],
+            'exp' => $c['exp'],
+            'isDefault' => (bool)$c['isDefault']
         ];
     }
 
-    $cards = [
-        ['id' => 'v', 'brand' => 'Visa', 'last4' => '4242', 'exp' => '09/27', 'isDefault' => true],
-        ['id' => 'm', 'brand' => 'Mastercard', 'last4' => '8810', 'exp' => '03/26', 'isDefault' => false]
-    ];
+    // Query real best score from bookings if any has been recorded
+    $scoreStmt = $pdo->prepare("SELECT MIN(CAST(JSON_UNQUOTE(JSON_EXTRACT(notes, '$.score')) AS UNSIGNED)) as best_score FROM bookings WHERE member_id = ? AND notes LIKE '%\"score\"%'");
+    $scoreStmt->execute([$memberId]);
+    $scoreRow = $scoreStmt->fetch(PDO::FETCH_ASSOC);
+    $bestScore = ($scoreRow && !empty($scoreRow['best_score'])) ? (int)$scoreRow['best_score'] : 0;
 
-    $hcpHistory = [10.2, 9.9, 9.7, 9.2, 9.0, 8.7, 8.4];
+    // Real handicap history: empty array unless member has recorded score history
+    $hcpHistory = [];
+    $hcpVal = (float)($member['hcp'] ?? 0.0);
+    $roundsVal = (int)($member['rounds'] ?? 0);
+    if ($roundsVal > 0 && $hcpVal > 0) {
+        $hcpHistory = [$hcpVal];
+    }
 
     echo json_encode([
         'status' => 'ok',
         'member' => $member,
         'cards' => $cards,
         'hcp_history' => $hcpHistory,
-        'best_score' => 79
+        'best_score' => $bestScore
     ]);
+}
+
+function handleCards(PDO $pdo, int $memberId): void
+{
+    $stmt = $pdo->prepare("SELECT id, brand, card_holder, last4, CONCAT(exp_month, '/', SUBSTRING(exp_year, 3, 2)) as exp, is_default as isDefault FROM member_cards WHERE member_id = ? ORDER BY is_default DESC, id DESC");
+    $stmt->execute([$memberId]);
+    $cards = [];
+    while ($c = $stmt->fetch()) {
+        $cards[] = [
+            'id' => (string)$c['id'],
+            'brand' => $c['brand'],
+            'card_holder' => $c['card_holder'] ?? '',
+            'last4' => $c['last4'],
+            'exp' => $c['exp'],
+            'isDefault' => (bool)$c['isDefault']
+        ];
+    }
+    echo json_encode([
+        'status' => 'ok',
+        'cards' => $cards
+    ]);
+}
+
+function handleAddCard(PDO $pdo, array $body, int $memberId): void
+{
+    $cardNumber = preg_replace('/\D/', '', (string)($body['card_number'] ?? $body['number'] ?? ''));
+    if (strlen($cardNumber) < 13 || strlen($cardNumber) > 19) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Please enter a valid 16-digit card number.']);
+        return;
+    }
+
+    $last4 = substr($cardNumber, -4);
+    $cardHolder = trim((string)($body['card_holder'] ?? $body['name'] ?? ''));
+    $exp = trim((string)($body['exp'] ?? ''));
+    $expMonth = '12';
+    $expYear = (string)(date('Y') + 3);
+
+    if (strpos($exp, '/') !== false) {
+        $parts = explode('/', $exp);
+        $expMonth = str_pad(trim($parts[0]), 2, '0', STR_PAD_LEFT);
+        $rawYear = trim($parts[1]);
+        $expYear = strlen($rawYear) === 2 ? ('20' . $rawYear) : $rawYear;
+    }
+
+    // Determine Brand
+    $brand = 'Visa';
+    if (str_starts_with($cardNumber, '4')) {
+        $brand = 'Visa';
+    } elseif (preg_match('/^5[1-5]/', $cardNumber) || preg_match('/^2(2[2-9][1-9]|[3-6]\d{2}|7[0-1]\d|720)/', $cardNumber)) {
+        $brand = 'Mastercard';
+    } elseif (str_starts_with($cardNumber, '34') || str_starts_with($cardNumber, '37')) {
+        $brand = 'Amex';
+    } elseif (str_starts_with($cardNumber, '6011') || str_starts_with($cardNumber, '65')) {
+        $brand = 'Discover';
+    }
+
+    // Check if this is the first card for the member
+    $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM member_cards WHERE member_id = ?");
+    $stmtCount->execute([$memberId]);
+    $count = (int)$stmtCount->fetchColumn();
+    $isDefault = ($count === 0 || !empty($body['is_default'])) ? 1 : 0;
+
+    if ($isDefault) {
+        $pdo->prepare("UPDATE member_cards SET is_default = 0 WHERE member_id = ?")->execute([$memberId]);
+    }
+
+    $stmt = $pdo->prepare("INSERT INTO member_cards (member_id, brand, card_holder, last4, exp_month, exp_year, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$memberId, $brand, $cardHolder, $last4, $expMonth, $expYear, $isDefault]);
+    $newId = (int)$pdo->lastInsertId();
+
+    echo json_encode([
+        'status' => 'ok',
+        'message' => 'Payment card added successfully',
+        'card' => [
+            'id' => (string)$newId,
+            'brand' => $brand,
+            'card_holder' => $cardHolder,
+            'last4' => $last4,
+            'exp' => $expMonth . '/' . substr($expYear, -2),
+            'isDefault' => (bool)$isDefault
+        ]
+    ]);
+}
+
+function handleSetDefaultCard(PDO $pdo, array $body, int $memberId): void
+{
+    $cardId = (int)($_GET['id'] ?? $body['id'] ?? 0);
+    $pdo->prepare("UPDATE member_cards SET is_default = 0 WHERE member_id = ?")->execute([$memberId]);
+    $pdo->prepare("UPDATE member_cards SET is_default = 1 WHERE id = ? AND member_id = ?")->execute([$cardId, $memberId]);
+
+    echo json_encode(['status' => 'ok', 'message' => 'Default payment card updated']);
+}
+
+function handleDeleteCard(PDO $pdo, array $body, int $memberId): void
+{
+    $cardId = (int)($_GET['id'] ?? $body['id'] ?? 0);
+
+    $stmt = $pdo->prepare("SELECT is_default FROM member_cards WHERE id = ? AND member_id = ?");
+    $stmt->execute([$cardId, $memberId]);
+    $wasDefault = (bool)$stmt->fetchColumn();
+
+    $pdo->prepare("DELETE FROM member_cards WHERE id = ? AND member_id = ?")->execute([$cardId, $memberId]);
+
+    if ($wasDefault) {
+        $pdo->prepare("UPDATE member_cards SET is_default = 1 WHERE member_id = ? ORDER BY id DESC LIMIT 1")->execute([$memberId]);
+    }
+
+    echo json_encode(['status' => 'ok', 'message' => 'Card removed successfully']);
 }
 
 function handleSaveScore(PDO $pdo, array $body, int $memberId): void
@@ -883,6 +1030,7 @@ function handleLogin(PDO $pdo, array $body): void
             'joined' => $member['joined'] ?? '',
             'status' => $member['status'] ?? 'Active',
             'spend' => (float)$member['spend'],
+            'member_number' => sprintf('#PV-%05d', (int)$member['id']),
         ]
     ]);
 }

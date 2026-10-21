@@ -96,14 +96,18 @@ if ($saved): ?>
 <div class="section-card" style="margin-top:20px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:6px">
     <div>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <h2>Course location & live conditions</h2>
         <span class="pill pill-green" id="weatherSourceBadge" style="font-size:0.7rem;text-transform:none;letter-spacing:0">
           <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;margin-right:4px"></span>
           Live Free API
         </span>
+        <span class="pill" id="weatherAutoRefreshBadge" style="font-size:0.7rem;text-transform:none;letter-spacing:0;background:rgba(22,101,52,0.1);color:#15803d;border:1px solid rgba(22,101,52,0.25);display:inline-flex;align-items:center;gap:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Auto-refreshes every 1 hr
+        </span>
       </div>
-      <p class="section-desc">Set your golf club location to fetch real-time weather, live wind speed & direction, and publish daily green speeds to members.</p>
+      <p class="section-desc">Set your golf club location to fetch real-time weather, live wind speed & direction, and publish daily green speeds to members. Auto-updates every hour.</p>
     </div>
     <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshWeather" style="border:1px solid var(--border);display:flex;align-items:center;gap:6px">
       <svg id="refreshSpinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
@@ -534,7 +538,7 @@ function fetchWeatherForLocation(force = true) {
   const spinner = document.getElementById('refreshSpinner');
   if (spinner) spinner.style.animation = 'spin 0.8s linear infinite';
 
-  fetch(`api/mobile.php?action=weather&location=${encodeURIComponent(loc)}&unit=${encodeURIComponent(unit)}&refresh=1`)
+  fetch(`api/mobile.php?action=weather&location=${encodeURIComponent(loc)}&unit=${encodeURIComponent(unit)}&refresh=${force ? 1 : 0}`)
     .then(r => r.json())
     .then(res => {
       if (spinner) spinner.style.animation = '';
@@ -556,12 +560,12 @@ function fetchWeatherForLocation(force = true) {
     });
 }
 
-function fetchWeatherByCoords(lat, lng) {
+function fetchWeatherByCoords(lat, lng, force = true) {
   const unit = document.getElementById('selectWeatherUnit')?.value || 'F';
   const spinner = document.getElementById('refreshSpinner');
   if (spinner) spinner.style.animation = 'spin 0.8s linear infinite';
 
-  fetch(`api/mobile.php?action=weather&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&unit=${encodeURIComponent(unit)}&refresh=1`)
+  fetch(`api/mobile.php?action=weather&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&unit=${encodeURIComponent(unit)}&refresh=${force ? 1 : 0}`)
     .then(r => r.json())
     .then(res => {
       if (spinner) spinner.style.animation = '';
@@ -722,6 +726,21 @@ document.addEventListener('DOMContentLoaded', function() {
   if (speedInput) {
     speedInput.addEventListener('input', updateLivePreview);
   }
+
+  // Auto-refresh weather every 1 hour (3600 seconds)
+  const HOURLY_WEATHER_INTERVAL = 60 * 60 * 1000;
+  setInterval(function() {
+    const lat = document.getElementById('inputCourseLat')?.value;
+    const lng = document.getElementById('inputCourseLng')?.value;
+    if (lat && lng) {
+      fetchWeatherByCoords(lat, lng, true);
+    } else {
+      fetchWeatherForLocation(true);
+    }
+    if (typeof showToast === 'function') {
+      showToast('Live weather auto-refreshed (1-hr interval)', 'success');
+    }
+  }, HOURLY_WEATHER_INTERVAL);
 });
 </script>
 <style>

@@ -15,12 +15,43 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final member = ref.watch(memberProvider).member;
+    final memberState = ref.watch(memberProvider);
+    final isLoggedIn = memberState.isLoggedIn;
+    final member = memberState.member;
     final nextBooking = ref.watch(bookingProvider).nextUpcoming;
     final waitlistReady = ref.watch(waitlistProvider).readyEntry;
     final waitlistCount = ref.watch(waitlistProvider).entries.length;
     final condition = ref.watch(courseProvider).condition;
     final scorecard = ref.watch(scorecardProvider);
+
+    // Notify user if live weather or course conditions change
+    ref.listen<CourseState>(courseProvider, (prev, next) {
+      if (prev != null && prev.condition != next.condition) {
+        if (prev.condition.hasWeatherChanged(next.condition)) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.wb_sunny_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Weather updated: ${next.condition.weather} ${next.condition.weatherDesc} (${next.condition.wind})',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.forest,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+    });
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -49,23 +80,29 @@ class HomeScreen extends ConsumerWidget {
                     GestureDetector(
                       onTap: () => ref
                           .read(appProvider.notifier)
-                          .navigateTo(AppScreen.profile),
+                          .navigateTo(isLoggedIn ? AppScreen.profile : AppScreen.login),
                       child: Container(
                         width: 44,
                         height: 44,
-                        decoration: const BoxDecoration(
-                          color: AppColors.sand,
+                        decoration: BoxDecoration(
+                          color: isLoggedIn ? AppColors.sand : AppColors.forest.withOpacity(0.12),
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          _initials(member.name),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.forest,
-                          ),
-                        ),
+                        child: isLoggedIn
+                            ? Text(
+                                _initials(member.name),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.forest,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person_outline_rounded,
+                                size: 22,
+                                color: AppColors.forest,
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -73,7 +110,7 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Good morning,',
+                          isLoggedIn ? 'Good morning,' : 'Welcome to',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade500,
@@ -81,7 +118,9 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          member.name,
+                          isLoggedIn
+                              ? (member.name.isNotEmpty ? member.name : 'Member')
+                              : 'Pine Valley GC',
                           style: const TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w900,
@@ -93,42 +132,78 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                GestureDetector(
-                  onTap: () => ref
-                      .read(appProvider.notifier)
-                      .navigateTo(AppScreen.bookings),
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.borderLight),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_outlined,
-                          size: 20,
-                          color: AppColors.textMain,
-                        ),
-                      ),
-                      if (waitlistReady != null)
-                        Positioned(
-                          right: 10,
-                          top: 10,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.danger,
-                              shape: BoxShape.circle,
-                            ),
+                if (isLoggedIn)
+                  GestureDetector(
+                    onTap: () => ref
+                        .read(appProvider.notifier)
+                        .navigateTo(AppScreen.bookings),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            size: 20,
+                            color: AppColors.textMain,
                           ),
                         ),
-                    ],
+                        if (waitlistReady != null)
+                          Positioned(
+                            right: 10,
+                            top: 10,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.danger,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () => ref
+                        .read(appProvider.notifier)
+                        .navigateTo(AppScreen.login),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.forest,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.forest.withOpacity(0.22),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.login_rounded, size: 14, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Sign In',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           ),

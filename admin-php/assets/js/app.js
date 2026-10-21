@@ -168,3 +168,47 @@ async function apiPost(url, data) {
 async function apiGet(url) {
   return fetch(url).then(r => r.json());
 }
+
+// ── Weather 1-Hour Auto-Refresh ─────────────────────── //
+const HOURLY_WEATHER_MS = 60 * 60 * 1000; // 1 hour (3600000ms)
+
+function getWeatherEmoji(desc) {
+  if (!desc) return '⛅';
+  const d = desc.toLowerCase();
+  if (d.includes('thunder') || d.includes('storm')) return '⚡';
+  if (d.includes('rain') || d.includes('shower') || d.includes('drizzle')) return '🌧️';
+  if (d.includes('snow') || d.includes('flurr') || d.includes('ice')) return '❄️';
+  if (d.includes('overcast') || d.includes('fog') || d.includes('haze') || d.includes('mist')) return '☁️';
+  if (d.includes('cloud') || d.includes('partly')) return '⛅';
+  return '☀️';
+}
+
+async function refreshAdminWeather(force = false) {
+  try {
+    const url = `api/mobile.php?action=weather${force ? '&refresh=1' : ''}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res && res.status === 'ok' && res.conditions) {
+      const c = res.conditions;
+      const iconEl = document.getElementById('topbarWeatherIcon');
+      const tempEl = document.getElementById('topbarWeatherTemp');
+      const descEl = document.getElementById('topbarWeatherDesc');
+      if (tempEl) tempEl.textContent = c.weather || '--°';
+      if (descEl) descEl.textContent = c.weather_desc ? `${c.weather_desc} · ${c.wind}` : '';
+      if (iconEl) iconEl.textContent = getWeatherEmoji(c.weather_desc);
+    }
+  } catch (e) {
+    console.warn('Weather auto-refresh error:', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const topbar = document.getElementById('topbarWeather');
+  if (topbar) {
+    refreshAdminWeather(false);
+  }
+  // Auto-refresh weather every 1 hour across all admin views
+  setInterval(() => {
+    refreshAdminWeather(true);
+  }, HOURLY_WEATHER_MS);
+});
+

@@ -15,6 +15,7 @@ class CourseCondition {
   final double? lng;
   final String gpsFormatted;
   final bool isGps;
+  final int? updatedTimestamp;
 
   CourseCondition({
     this.weather = '68°',
@@ -33,6 +34,7 @@ class CourseCondition {
     this.lng,
     this.gpsFormatted = '',
     this.isGps = false,
+    this.updatedTimestamp,
   });
 
   factory CourseCondition.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,51 @@ class CourseCondition {
       lng: json['lng'] != null ? (json['lng'] as num).toDouble() : null,
       gpsFormatted: json['gps_formatted']?.toString() ?? '',
       isGps: json['is_gps'] == true || json['is_gps'] == 1 || json['is_gps'] == '1',
+      updatedTimestamp: json['updated_timestamp'] != null
+          ? int.tryParse(json['updated_timestamp'].toString())
+          : null,
     );
   }
+
+  bool hasWeatherChanged(CourseCondition other) {
+    return weather != other.weather ||
+        weatherDesc != other.weatherDesc ||
+        wind != other.wind ||
+        windDesc != other.windDesc ||
+        greenSpeed != other.greenSpeed ||
+        carts != other.carts ||
+        location != other.location;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CourseCondition &&
+          runtimeType == other.runtimeType &&
+          weather == other.weather &&
+          weatherDesc == other.weatherDesc &&
+          wind == other.wind &&
+          windDesc == other.windDesc &&
+          greenSpeed == other.greenSpeed &&
+          speedDesc == other.speedDesc &&
+          carts == other.carts &&
+          cartsDesc == other.cartsDesc &&
+          location == other.location &&
+          humidity == other.humidity &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode => Object.hash(
+        weather,
+        weatherDesc,
+        wind,
+        windDesc,
+        greenSpeed,
+        speedDesc,
+        carts,
+        cartsDesc,
+        location,
+        humidity,
+        updatedAt,
+      );
 }

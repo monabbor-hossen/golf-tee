@@ -226,6 +226,12 @@ $appUrl = Config::get('APP_URL');
         <div id="searchResults" class="search-dropdown hidden"></div>
       </div>
       <div class="topbar-right">
+        <!-- Live Weather Chip (Auto-refreshes every 1 hour) -->
+        <a href="settings.php?tab=Course" class="topbar-weather hide-sm" id="topbarWeather" title="Course Weather · Auto-refreshes every 1 hour" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(22,101,52,0.08);border:1px solid rgba(22,101,52,0.2);color:var(--forest);font-size:0.75rem;font-weight:600;text-decoration:none">
+          <span id="topbarWeatherIcon">⛅</span>
+          <span id="topbarWeatherTemp">--°</span>
+          <span id="topbarWeatherDesc" style="color:var(--text-muted);font-weight:500;font-size:0.7rem">Weather</span>
+        </a>
         <a href="mastergrid.php" class="btn btn-ghost btn-sm hide-sm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 5h16v15H4zM4 10h16M9 5v15"/></svg>
           Today's tee sheet

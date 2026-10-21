@@ -5,6 +5,7 @@ import '../models/booking.dart';
 import '../providers/app_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/course_provider.dart';
+import '../providers/member_provider.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/qr_ticket_view.dart';
 import '../widgets/top_bar.dart';
@@ -26,6 +27,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     final bookingNotifier = ref.read(bookingProvider.notifier);
     final bookings = ref.watch(bookingProvider).upcoming;
     final past = ref.watch(bookingProvider).past;
+    final member = ref.watch(memberProvider).member;
 
     final all = [...bookings, ...past];
     final b = all.firstWhere(
@@ -95,7 +97,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                                     const SizedBox(height: 10),
                                     Row(
                                       children: [
-                                        _buildAvatar('James Carter', isLead: true),
+                                        _buildAvatar(member.name.isNotEmpty ? member.name : 'You', isLead: true),
                                         ...b.partners.map((p) => Padding(
                                               padding: const EdgeInsets.only(left: 8),
                                               child: _buildAvatar(p),

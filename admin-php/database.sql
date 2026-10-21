@@ -29,6 +29,22 @@ CREATE TABLE IF NOT EXISTS members (
 ) ENGINE=InnoDB;
 
 -- --------------------------------------------------------
+-- Member Payment Cards
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS member_cards (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  member_id   INT NOT NULL,
+  brand       VARCHAR(50) NOT NULL DEFAULT 'Visa',
+  card_holder VARCHAR(100) DEFAULT '',
+  last4       VARCHAR(4) NOT NULL,
+  exp_month   VARCHAR(2) NOT NULL,
+  exp_year    VARCHAR(4) NOT NULL,
+  is_default  TINYINT(1) NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- --------------------------------------------------------
 -- Bookings / Tee Grid
 -- --------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bookings (
@@ -350,4 +366,21 @@ INSERT IGNORE INTO club_news (id, title, category, badge_text, summary, content,
 (1, 'Autumn Member Classic — registration is open', 'Event', 'Event · Nov 9', 'Shotgun start 8 AM · 72 spots left', 'The annual Autumn Member Classic is open for registration. 18 holes of championship stroke play followed by a harvest dinner and awards at the clubhouse. Register your team early before capacity is reached.', 'https://images.unsplash.com/photo-1761141987961-ed96a841fe21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE()),
 (2, 'Aerification Schedule for Front 9 Fairways', 'Course Update', 'Course Update', 'Scheduled for next Tuesday 6 AM - 12 PM', 'Our greenskeeping crew will be conducting seasonal aerification on Holes 1 through 9 next Tuesday morning. Carts will be restricted to the cart path during this maintenance window. The back 9 remains fully operational.', 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE()),
 (3, 'New Pro Shop Arrivals: Titleist & Callaway Gear', 'Pro Shop', 'Pro Shop · 15% Off', 'Exclusive discount for Gold & Silver tier members', 'Check out the newly stocked premium drivers, bags, and golf apparel in the Pro Shop. Gold and Silver members enjoy an automatic 15% discount at checkout through the end of the month.', 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600', 1, CURDATE());
+
+-- --------------------------------------------------------
+-- Member Payment Cards
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS member_cards (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  brand VARCHAR(30) NOT NULL DEFAULT 'Visa',
+  card_holder VARCHAR(100) NOT NULL DEFAULT '',
+  last4 VARCHAR(4) NOT NULL,
+  exp_month VARCHAR(2) NOT NULL DEFAULT '12',
+  exp_year VARCHAR(4) NOT NULL DEFAULT '2028',
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_member (member_id),
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

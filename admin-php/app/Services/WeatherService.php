@@ -50,7 +50,7 @@ class WeatherService
 
         $cacheKey = strtolower($queryTarget) . '_' . $unit;
         $cacheFile = $this->cacheDir . '/weather_' . md5($cacheKey) . '.json';
-        $cacheTtl = 600; // 10 minutes
+        $cacheTtl = 3600; // 1 hour (auto refresh weather after one hour)
 
         if (!$forceRefresh && file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTtl)) {
             $cached = @json_decode((string)file_get_contents($cacheFile), true);
@@ -59,6 +59,7 @@ class WeatherService
                 $cached['speed_desc']  = $speedDesc;
                 $cached['carts']       = $carts;
                 $cached['carts_desc']  = $cartsDesc;
+                $cached['cache_expires_in'] = max(0, $cacheTtl - (time() - filemtime($cacheFile)));
                 return $cached;
             }
         }
@@ -94,12 +95,16 @@ class WeatherService
                 'carts'         => $carts,
                 'carts_desc'    => $cartsDesc,
                 'updated_at'    => 'Updated ' . date('g:i A'),
+                'updated_timestamp' => time(),
+                'cache_ttl'     => $cacheTtl,
                 'is_live'       => true,
                 'is_gps'        => $hasGps || !empty($gpsFormatted),
                 'source'        => $hasGps ? 'Live GPS · Free Weather API' : 'wttr.in Free API',
             ];
 
             @file_put_contents($cacheFile, json_encode($result, JSON_PRETTY_PRINT));
+            $this->settingRepo->set('last_weather_update', (string)time());
+            $this->settingRepo->set('last_weather_json', json_encode($result));
             return $result;
         }
 
@@ -124,10 +129,27 @@ class WeatherService
             'carts'         => $carts,
             'carts_desc'    => $cartsDesc,
             'updated_at'    => 'Updated ' . date('g:i A'),
+            'updated_timestamp' => time(),
+            'cache_ttl'     => $cacheTtl,
             'is_live'       => false,
             'is_gps'        => $hasGps,
             'source'        => 'Offline default',
         ];
+    }
+
+    /**
+     * Clear all cached weather JSON files so fresh weather is fetched immediately.
+     */
+    public function clearCache(): void
+    {
+        $files = glob($this->cacheDir . '/weather_*.json');
+        if ($files) {
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        }
     }
 
     private function fetchFromWttr(string $location, string $unit): ?array

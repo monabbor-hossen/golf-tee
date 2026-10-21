@@ -19,7 +19,7 @@ class BookingState {
     this.past = const [],
     this.selectedPartners = const [],
     this.selectedAddons = const ['cart'],
-    this.selectedCardId = 'v',
+    this.selectedCardId = '',
     this.promoCode = '',
     this.promoApplied = false,
     this.promoError = false,

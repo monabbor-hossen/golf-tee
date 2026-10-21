@@ -3,6 +3,7 @@ class PaymentCard {
   final String brand;
   final String last4;
   final String exp;
+  final String cardHolder;
   final bool isDefault;
 
   PaymentCard({
@@ -10,6 +11,7 @@ class PaymentCard {
     required this.brand,
     required this.last4,
     required this.exp,
+    this.cardHolder = '',
     this.isDefault = false,
   });
 
@@ -19,7 +21,8 @@ class PaymentCard {
       brand: json['brand']?.toString() ?? 'Visa',
       last4: json['last4']?.toString() ?? '4242',
       exp: json['exp']?.toString() ?? '09/27',
-      isDefault: json['isDefault'] == true,
+      cardHolder: json['card_holder']?.toString() ?? '',
+      isDefault: json['isDefault'] == true || json['isDefault'] == 1 || json['isDefault'] == '1',
     );
   }
 
@@ -28,6 +31,7 @@ class PaymentCard {
     String? brand,
     String? last4,
     String? exp,
+    String? cardHolder,
     bool? isDefault,
   }) {
     return PaymentCard(
@@ -35,66 +39,19 @@ class PaymentCard {
       brand: brand ?? this.brand,
       last4: last4 ?? this.last4,
       exp: exp ?? this.exp,
+      cardHolder: cardHolder ?? this.cardHolder,
       isDefault: isDefault ?? this.isDefault,
     );
   }
-}
 
-class CourseCondition {
-  final String weather;
-  final String weatherDesc;
-  final String wind;
-  final String windDesc;
-  final String greenSpeed;
-  final String speedDesc;
-  final String carts;
-  final String cartsDesc;
-  final String updatedAt;
-  final String location;
-  final String humidity;
-  final bool isLive;
-  final double? lat;
-  final double? lng;
-  final String gpsFormatted;
-  final bool isGps;
-
-  CourseCondition({
-    this.weather = '68°',
-    this.weatherDesc = 'Sunny',
-    this.wind = '6 mph',
-    this.windDesc = 'NW wind',
-    this.greenSpeed = '10.5',
-    this.speedDesc = 'Green speed',
-    this.carts = 'Open',
-    this.cartsDesc = 'Carts',
-    this.updatedAt = 'Updated 7:45 AM',
-    this.location = 'Pine Valley, NJ',
-    this.humidity = '45%',
-    this.isLive = false,
-    this.lat,
-    this.lng,
-    this.gpsFormatted = '',
-    this.isGps = false,
-  });
-
-  factory CourseCondition.fromJson(Map<String, dynamic> json) {
-    return CourseCondition(
-      weather: json['weather']?.toString() ?? '68°',
-      weatherDesc: json['weather_desc']?.toString() ?? 'Sunny',
-      wind: json['wind']?.toString() ?? '6 mph',
-      windDesc: json['wind_desc']?.toString() ?? 'NW wind',
-      greenSpeed: json['green_speed']?.toString() ?? '10.5',
-      speedDesc: json['speed_desc']?.toString() ?? 'Green speed',
-      carts: json['carts']?.toString() ?? 'Open',
-      cartsDesc: json['carts_desc']?.toString() ?? 'Carts',
-      updatedAt: json['updated_at']?.toString() ?? 'Updated 7:45 AM',
-      location: json['location']?.toString() ?? 'Pine Valley, NJ',
-      humidity: json['humidity']?.toString() ?? '45%',
-      isLive: json['is_live'] == true || json['is_live'] == 1 || json['is_live'] == '1',
-      lat: json['lat'] != null ? (json['lat'] as num).toDouble() : null,
-      lng: json['lng'] != null ? (json['lng'] as num).toDouble() : null,
-      gpsFormatted: json['gps_formatted']?.toString() ?? '',
-      isGps: json['is_gps'] == true || json['is_gps'] == 1 || json['is_gps'] == '1',
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'brand': brand,
+      'last4': last4,
+      'exp': exp,
+      'card_holder': cardHolder,
+      'isDefault': isDefault,
+    };
   }
 }

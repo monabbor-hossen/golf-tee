@@ -209,6 +209,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               runSpacing: 6,
               children: [
                 ActionChip(
+                  label: const Text('mdmonabborhossen@gmail.com (Your Account)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.forest)),
+                  backgroundColor: AppColors.forest.withValues(alpha: 0.12),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _handleGoogleLogin('mdmonabborhossen@gmail.com');
+                  },
+                ),
+                ActionChip(
                   label: const Text('james.carter@mail.com (Admin Added)', style: TextStyle(fontSize: 11, color: AppColors.forest)),
                   backgroundColor: AppColors.forest.withValues(alpha: 0.08),
                   onPressed: () {
@@ -399,10 +407,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.offwhite,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Top Bar with Back to Home & Guest option
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => ref
+                        .read(appProvider.notifier)
+                        .navigateTo(AppScreen.home),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 16,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref
+                        .read(appProvider.notifier)
+                        .navigateTo(AppScreen.home),
+                    child: const Text(
+                      'Browse as guest',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.forest,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
 
               // Club Crest & Branding Card
