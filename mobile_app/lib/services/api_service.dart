@@ -25,9 +25,28 @@ class ApiService {
   int currentMemberId = 0;
   String currentMemberName = '';
 
+  /// ── Live Production API URL ──────────────────────────────────────────
+  /// When deployed to production, paste your live backend URL here:
+  /// Example: 'https://your-domain.com/admin-php/api/mobile.php'
+  ///
+  /// You can also pass it at build time via:
+  ///   flutter build apk --dart-define=API_URL=https://your-domain.com/admin-php/api/mobile.php
+  static const String liveApiUrl = '';
+
+  static const String _envApiUrl = String.fromEnvironment('API_URL');
+
   static String? _resolvedBaseUrl;
 
   static List<String> get _candidateUrls {
+    // 1. If liveApiUrl or --dart-define=API_URL is set, use it as priority
+    if (_envApiUrl.isNotEmpty) {
+      return [_envApiUrl];
+    }
+    if (liveApiUrl.isNotEmpty) {
+      return [liveApiUrl];
+    }
+
+    // 2. Local development fallback candidates
     if (kIsWeb) {
       return const [
         'http://localhost/golf-tee/admin-php/api/mobile.php',
