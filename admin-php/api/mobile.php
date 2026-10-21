@@ -80,6 +80,23 @@ switch ($action) {
         handleLogin($pdo, $jsonBody);
         break;
 
+    case 'verify_setup_token':
+        handleVerifySetupToken($pdo);
+        break;
+
+    case 'set_password':
+        handleSetPassword($pdo, $jsonBody);
+        break;
+
+    case 'register':
+    case 'signup':
+        http_response_code(403);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Direct self-registration is disabled. Pine Valley Golf Club accounts are created exclusively by Club Administration.'
+        ]);
+        break;
+
     case 'members':
         handleMembers($pdo);
         break;
@@ -717,16 +734,90 @@ function calculateSlotPrice(int $holes, bool $isWeekend, int $min): int
 
 function handleLogin(PDO $pdo, array $body): void
 {
-    $email = trim($_GET['email'] ?? $body['email'] ?? '');
+    $email = trim((string)($_GET['email'] ?? $body['email'] ?? ''));
+    $password = (string)($_GET['password'] ?? $body['password'] ?? '');
+    $authType = strtolower(trim((string)($_GET['auth_type'] ?? $body['auth_type'] ?? (!empty($body['google']) || !empty($_GET['google']) ? 'google' : 'password'))));
     $memberId = (int)($_GET['member_id'] ?? $body['member_id'] ?? 0);
 
+    // ─────────────────────────────────────────────────────────────
+    // 1. "Continue with Google" Authentication Flow
+    // Requirement: ONLY emails pre-registered by admin are permitted
+    // ─────────────────────────────────────────────────────────────
+    if ($authType === 'google') {
+        if (empty($email)) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Please provide a valid Google account email address.'
+            ]);
+            return;
+        }
+
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend, password_hash, auth_provider FROM members WHERE LOWER(email) = LOWER(?)");
+        $stmt->execute([$email]);
+        $member = $stmt->fetch();
+
+        // If email was not pre-registered by an admin:
+        if (!$member) {
+            http_response_code(403);
+            echo json_encode([
+                'status' => 'error',
+                'code' => 'GOOGLE_AUTH_UNAUTHORIZED',
+                'message' => 'Access Denied: The Google account ("' . $email . '") is not registered with Pine Valley Golf Club. Self-registration is disabled; only accounts created by club administration can sign in. Please contact the club office.'
+            ]);
+            return;
+        }
+
+        if (($member['status'] ?? '') === 'Suspended') {
+            http_response_code(403);
+            echo json_encode([
+                'status' => 'error',
+                'code' => 'ACCOUNT_SUSPENDED',
+                'message' => 'Your membership account is currently suspended. Please contact club administration at (555) 301-2200.'
+            ]);
+            return;
+        }
+
+        // Pre-approved member: activate if they were Pending
+        if (($member['status'] ?? '') === 'Pending') {
+            $pdo->prepare("UPDATE members SET status = 'Active', auth_provider = 'google', setup_token = NULL, setup_token_expires = NULL WHERE id = ?")->execute([$member['id']]);
+            $member['status'] = 'Active';
+        }
+
+        echo json_encode([
+            'status' => 'ok',
+            'auth_type' => 'google',
+            'message' => 'Signed in with Google successfully',
+            'token' => 'member_google_token_' . $member['id'] . '_' . time(),
+            'member' => [
+                'id' => (int)$member['id'],
+                'name' => $member['name'],
+                'email' => $member['email'],
+                'phone' => $member['phone'] ?? '',
+                'tier' => $member['tier'] ?? 'Standard',
+                'hcp' => (float)$member['hcp'],
+                'rounds' => (int)$member['rounds'],
+                'last_play' => $member['last_play'] ?? '',
+                'joined' => $member['joined'] ?? '',
+                'status' => $member['status'] ?? 'Active',
+                'spend' => (float)$member['spend'],
+            ]
+        ]);
+        return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. Standard Email & Password Authentication Flow
+    // Requirement: User cannot self-register; admin creates account;
+    // user activates password via email URL, then logs in with email & password.
+    // ─────────────────────────────────────────────────────────────
     $member = null;
-    if ($memberId > 0) {
-        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend FROM members WHERE id = ?");
+    if ($memberId > 0 && empty($email)) {
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend, password_hash, setup_token FROM members WHERE id = ?");
         $stmt->execute([$memberId]);
         $member = $stmt->fetch();
     } elseif (!empty($email)) {
-        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend FROM members WHERE LOWER(email) = LOWER(?)");
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, tier, hcp, rounds, last_play, joined, status, spend, password_hash, setup_token FROM members WHERE LOWER(email) = LOWER(?)");
         $stmt->execute([$email]);
         $member = $stmt->fetch();
     }
@@ -735,7 +826,8 @@ function handleLogin(PDO $pdo, array $body): void
         http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Member account not found for ' . ($email ?: "Member #$memberId") . '. Please verify your email address or contact the club office.'
+            'code' => 'ACCOUNT_NOT_FOUND',
+            'message' => 'No club membership account found for "' . ($email ?: "Member #$memberId") . '". Accounts cannot be created directly; only club administration can create accounts.'
         ]);
         return;
     }
@@ -744,22 +836,39 @@ function handleLogin(PDO $pdo, array $body): void
         http_response_code(403);
         echo json_encode([
             'status' => 'error',
+            'code' => 'ACCOUNT_SUSPENDED',
             'message' => 'Your membership account is currently suspended. Please contact club administration at (555) 301-2200.'
         ]);
         return;
     }
 
-    if (($member['status'] ?? '') === 'Pending') {
-        http_response_code(403);
+    // Check if the user has set their password via the email link
+    if (empty($member['password_hash'])) {
+        http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Your membership account is currently pending committee review. Please check back soon.'
+            'code' => 'PASSWORD_NOT_SET',
+            'message' => 'Your account has been registered by administration, but your password is not set yet. Please check your email inbox for the activation link, or contact the club office.',
+            'has_setup_token' => !empty($member['setup_token'])
         ]);
         return;
     }
 
+    // Verify Password
+    if (empty($password) || !password_verify($password, $member['password_hash'])) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'code' => 'INVALID_PASSWORD',
+            'message' => 'Incorrect password entered. Please verify your credentials or contact the club office.'
+        ]);
+        return;
+    }
+
+    // Successful Login
     echo json_encode([
         'status' => 'ok',
+        'auth_type' => 'password',
         'message' => 'Signed in successfully',
         'token' => 'member_token_' . $member['id'] . '_' . time(),
         'member' => [
@@ -775,6 +884,80 @@ function handleLogin(PDO $pdo, array $body): void
             'status' => $member['status'] ?? 'Active',
             'spend' => (float)$member['spend'],
         ]
+    ]);
+}
+
+function handleVerifySetupToken(PDO $pdo): void
+{
+    $token = trim((string)($_GET['token'] ?? ''));
+    if (empty($token)) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Missing activation token.']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id, name, email, tier, status FROM members WHERE setup_token = ? AND setup_token_expires > NOW()");
+    $stmt->execute([$token]);
+    $m = $stmt->fetch();
+
+    if (!$m) {
+        http_response_code(404);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Activation link is invalid or has expired. Please contact club administration.'
+        ]);
+        return;
+    }
+
+    echo json_encode([
+        'status' => 'ok',
+        'member' => [
+            'id' => (int)$m['id'],
+            'name' => $m['name'],
+            'email' => $m['email'],
+            'tier' => $m['tier']
+        ]
+    ]);
+}
+
+function handleSetPassword(PDO $pdo, array $body): void
+{
+    $token = trim((string)($_GET['token'] ?? $body['token'] ?? ''));
+    $password = (string)($_GET['password'] ?? $body['password'] ?? '');
+
+    if (empty($token)) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Activation token is required.']);
+        return;
+    }
+
+    if (strlen($password) < 6) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Password must be at least 6 characters.']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id, name, email FROM members WHERE setup_token = ? AND setup_token_expires > NOW()");
+    $stmt->execute([$token]);
+    $m = $stmt->fetch();
+
+    if (!$m) {
+        http_response_code(404);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Activation token is invalid or has expired.'
+        ]);
+        return;
+    }
+
+    $hash = password_hash($password, PASSWORD_BCRYPT);
+    $up = $pdo->prepare("UPDATE members SET password_hash = ?, setup_token = NULL, setup_token_expires = NULL, status = 'Active' WHERE id = ?");
+    $up->execute([$hash, $m['id']]);
+
+    echo json_encode([
+        'status' => 'ok',
+        'message' => 'Password created successfully! You can now log in to the mobile app.',
+        'email' => $m['email']
     ]);
 }
 

@@ -63,6 +63,25 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
   </div>
 </div>
 
+<?php if (!empty($flashError)): ?>
+<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:14px 18px;border-radius:12px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:600">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <span><?= htmlspecialchars($flashError) ?></span>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($flashSuccess)): ?>
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:14px 18px;border-radius:12px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:600">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
+  <span><?= htmlspecialchars($flashSuccess) ?></span>
+</div>
+<?php elseif (($_GET['msg'] ?? '') === 'invite_sent'): ?>
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:12px 16px;border-radius:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+  <span>Official invitation email with secure password setup link has been dispatched to the member.</span>
+</div>
+<?php endif; ?>
+
 <!-- Filters -->
 <div class="filters">
   <div class="filter-search" style="max-width:260px">
@@ -228,6 +247,47 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
       <div class="info-row"><span class="info-label">Next tee time</span><span class="info-val" style="font-size:.75rem"><?= htmlspecialchars($selectedMember['next_tee']) ?></span></div>
       <?php endif; ?>
 
+      <!-- Account & App Access Security -->
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">App Access & Security</span>
+          <?php if (!empty($selectedMember['password_hash'])): ?>
+            <span class="pill pill-green" style="font-size:11px">Password Active</span>
+          <?php elseif (!empty($selectedMember['setup_token'])): ?>
+            <span class="pill pill-amber" style="font-size:11px">Password Pending</span>
+          <?php else: ?>
+            <span class="pill pill-gray" style="font-size:11px">Not Activated</span>
+          <?php endif; ?>
+        </div>
+        <p style="font-size:.75rem;color:#4b5563;line-height:1.4;margin:0 0 10px 0">
+          <?php if (!empty($selectedMember['password_hash'])): ?>
+            Member has set their password. Can sign in with email/password or authorized Google account.
+          <?php elseif (!empty($selectedMember['setup_token'])): ?>
+            Invitation sent. Waiting for member to click email link and enter a password.
+          <?php else: ?>
+            Account created without password. Send an invitation link below.
+          <?php endif; ?>
+        </p>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <form method="post" style="margin:0">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="resend_invite">
+            <input type="hidden" name="id" value="<?= $selectedMember['id'] ?>">
+            <button type="submit" class="btn btn-secondary btn-sm" style="font-size:.75rem;padding:5px 10px;display:inline-flex;align-items:center;gap:4px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <?= !empty($selectedMember['password_hash']) ? 'Send Reset Link' : 'Resend Invite' ?>
+            </button>
+          </form>
+
+          <?php if (!empty($selectedMember['setup_token'])): ?>
+            <a href="set-password.php?token=<?= urlencode($selectedMember['setup_token']) ?>" target="_blank" class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:5px 10px;color:var(--forest);text-decoration:none">
+              Open Setup Link ↗
+            </a>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <?php if (!empty($bookingHistory)): ?>
       <p style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-top:16px;margin-bottom:8px">Booking history</p>
       <?php foreach ($bookingHistory as $h): ?>
@@ -291,6 +351,9 @@ $renderSortTh = function(string $col, string $label, string $defaultDir = 'asc')
       <?= csrfField() ?>
       <input type="hidden" name="action" value="add">
       <div class="modal-body">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;margin-bottom:14px;line-height:1.4">
+          🔒 <strong>Invite-Only Access:</strong> Regular users cannot self-register. Creating this member will automatically email them an invitation link to set their password. They can also use "Continue with Google" once their email is saved here.
+        </div>
         <div class="field-group"><label class="field-label">Full name</label><input name="name" class="input" required placeholder="Jane Doe"/></div>
         <div class="modal-grid-2">
           <div class="field-group"><label class="field-label">Email</label><input name="email" type="email" class="input" required placeholder="jane@mail.com"/></div>

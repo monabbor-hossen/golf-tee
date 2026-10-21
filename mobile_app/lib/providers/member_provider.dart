@@ -119,6 +119,31 @@ class MemberNotifier extends Notifier<MemberState> {
     }
   }
 
+  Future<bool> loginWithGoogle(String email) async {
+    state = state.copyWith(isLoading: true, loginError: null);
+    final result = await _api.loginWithGoogle(email.trim());
+    if (result.success && result.member != null) {
+      _api.currentMemberId = result.member!.id;
+      _api.currentMemberName = result.member!.name;
+      state = state.copyWith(
+        member: result.member,
+        isLoggedIn: true,
+        isLoading: false,
+        loginError: null,
+      );
+      await loadProfile();
+      ref.read(bookingProvider.notifier).loadBookings();
+      return true;
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        loginError: result.errorMessage ??
+            'Access Denied: The Google account "$email" has not been pre-registered by administration.',
+      );
+      return false;
+    }
+  }
+
   Future<bool> loginAsMember(Member m) async {
     state = state.copyWith(isLoading: true, loginError: null);
     _api.currentMemberId = m.id;

@@ -27,32 +27,59 @@ class MemberController
             Session::validateRequestCsrf($request);
             $action = $request->getString('action');
 
-            if ($action === 'add') {
-                $this->memberService->addMember($request->all());
+            try {
+                if ($action === 'add') {
+                    $newId = $this->memberService->addMember($request->all());
+                    Session::setFlash('success', 'Member added successfully and password setup email dispatched!');
+                    Response::redirect('members.php?memberId=' . $newId . '&msg=invite_sent');
+                }
+
+                if ($action === 'edit') {
+                    $id = $request->getInt('id');
+                    $this->memberService->updateMember($id, $request->all());
+                    Session::setFlash('success', 'Member details updated successfully.');
+                    Response::redirect('members.php?memberId=' . $id);
+                }
+
+                if ($action === 'approve') {
+                    $id = $request->getInt('id');
+                    $this->memberService->approveMember($id);
+                    Session::setFlash('success', 'Member approved.');
+                    Response::redirect('members.php?memberId=' . $id);
+                }
+
+                if ($action === 'suspend') {
+                    $id = $request->getInt('id');
+                    $this->memberService->suspendMember($id);
+                    Session::setFlash('success', 'Member suspended.');
+                    Response::redirect('members.php?memberId=' . $id);
+                }
+
+                if ($action === 'resend_invite') {
+                    $id = $request->getInt('id');
+                    $this->memberService->resendInvitation($id);
+                    Session::setFlash('success', 'Password setup invitation re-sent successfully!');
+                    Response::redirect('members.php?memberId=' . $id . '&msg=invite_sent');
+                }
+
+                if ($action === 'delete') {
+                    $id = $request->getInt('id');
+                    $this->memberService->deleteMember($id);
+                    Session::setFlash('success', 'Member deleted.');
+                    Response::redirect('members.php');
+                }
+            } catch (\InvalidArgumentException $e) {
+                Session::setFlash('error', $e->getMessage());
                 Response::redirect('members.php');
-            }
-
-            if ($action === 'edit') {
-                $id = $request->getInt('id');
-                $this->memberService->updateMember($id, $request->all());
-                Response::redirect('members.php?memberId=' . $id);
-            }
-
-            if ($action === 'approve') {
-                $id = $request->getInt('id');
-                $this->memberService->approveMember($id);
-                Response::redirect('members.php?memberId=' . $id);
-            }
-
-            if ($action === 'suspend') {
-                $id = $request->getInt('id');
-                $this->memberService->suspendMember($id);
-                Response::redirect('members.php?memberId=' . $id);
-            }
-
-            if ($action === 'delete') {
-                $id = $request->getInt('id');
-                $this->memberService->deleteMember($id);
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000 || str_contains($e->getMessage(), '1062')) {
+                    Session::setFlash('error', 'A member with this email address already exists.');
+                } else {
+                    Session::setFlash('error', 'Database error: ' . $e->getMessage());
+                }
+                Response::redirect('members.php');
+            } catch (\Throwable $e) {
+                Session::setFlash('error', 'An unexpected error occurred: ' . $e->getMessage());
                 Response::redirect('members.php');
             }
 
@@ -81,7 +108,9 @@ class MemberController
         }
 
         $data = $this->memberService->listMembers($query, $tier, $status, $sort, $dir, $selected ?: null, $spend);
-        $data['currentPage'] = 'members';
+        $data['currentPage']  = 'members';
+        $data['flashSuccess'] = Session::getFlash('success');
+        $data['flashError']   = Session::getFlash('error');
 
         View::render('members', $data);
     }

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS members (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(100) NOT NULL,
   email       VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) DEFAULT NULL,
   phone       VARCHAR(30)  DEFAULT '',
   tier        ENUM('Gold','Silver','Standard') NOT NULL DEFAULT 'Standard',
   hcp         DECIMAL(4,1) DEFAULT 36.0,
@@ -20,6 +21,9 @@ CREATE TABLE IF NOT EXISTS members (
   status      ENUM('Active','Suspended','Pending') NOT NULL DEFAULT 'Pending',
   spend       DECIMAL(10,2) DEFAULT 0,
   next_tee    VARCHAR(120)  DEFAULT '',
+  setup_token VARCHAR(100) DEFAULT NULL,
+  setup_token_expires DATETIME DEFAULT NULL,
+  auth_provider VARCHAR(50) DEFAULT 'email',
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

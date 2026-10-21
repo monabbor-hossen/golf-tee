@@ -125,7 +125,7 @@ class MemberRepository
     public function create(array $data): int
     {
         Database::query(
-            'INSERT INTO members (name, email, phone, tier, hcp, status, joined) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO members (name, email, phone, tier, hcp, status, joined, setup_token, setup_token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $data['name'],
                 $data['email'],
@@ -133,10 +133,41 @@ class MemberRepository
                 $data['tier'] ?? 'Standard',
                 (float)($data['hcp'] ?? 36.0),
                 $data['status'] ?? 'Pending',
-                $data['joined'] ?? date('M Y')
+                $data['joined'] ?? date('M Y'),
+                $data['setup_token'] ?? null,
+                $data['setup_token_expires'] ?? null
             ]
         );
         return (int)Database::lastInsertId();
+    }
+
+    public function findByEmail(string $email): ?array
+    {
+        return Database::fetchOne('SELECT * FROM members WHERE LOWER(email) = LOWER(?)', [trim($email)]);
+    }
+
+    public function findByToken(string $token): ?array
+    {
+        return Database::fetchOne(
+            'SELECT * FROM members WHERE setup_token = ? AND setup_token_expires > NOW()',
+            [trim($token)]
+        );
+    }
+
+    public function setPasswordAndActivate(int $id, string $passwordHash): bool
+    {
+        return Database::execute(
+            "UPDATE members SET password_hash = ?, setup_token = NULL, setup_token_expires = NULL, status = 'Active' WHERE id = ?",
+            [$passwordHash, $id]
+        );
+    }
+
+    public function setSetupToken(int $id, string $token, string $expires): bool
+    {
+        return Database::execute(
+            'UPDATE members SET setup_token = ?, setup_token_expires = ? WHERE id = ?',
+            [$token, $expires, $id]
+        );
     }
 
     public function update(int $id, array $data): bool

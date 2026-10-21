@@ -429,6 +429,7 @@ class ApiService {
     try {
       final payload = {
         'action': 'login',
+        'auth_type': 'password',
         if (email != null && email.isNotEmpty) 'email': email,
         if (memberId != null && memberId > 0) 'member_id': memberId,
         if (password != null && password.isNotEmpty) 'password': password,
@@ -454,6 +455,42 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('ApiService.login error: $e');
+      return AuthResult(
+        success: false,
+        errorMessage: 'Unable to connect to Pine Valley club server. Please verify your connection.',
+      );
+    }
+  }
+
+  // ── 9b. Sign In With Google (Admin-registered emails only) ──
+  Future<AuthResult> loginWithGoogle(String email) async {
+    try {
+      final payload = {
+        'action': 'login',
+        'auth_type': 'google',
+        'email': email.trim(),
+      };
+      final res = await _httpPost(payload);
+      if (res.body.isNotEmpty) {
+        final data = jsonDecode(res.body);
+        if (res.statusCode == 200 && data['status'] == 'ok' && data['member'] != null) {
+          final m = Member.fromJson(data['member'] as Map<String, dynamic>);
+          currentMemberId = m.id;
+          currentMemberName = m.name;
+          return AuthResult(success: true, member: m);
+        } else if (data['message'] != null) {
+          return AuthResult(
+            success: false,
+            errorMessage: data['message'].toString(),
+          );
+        }
+      }
+      return AuthResult(
+        success: false,
+        errorMessage: 'Google authentication failed. Only accounts pre-registered by club administration can sign in.',
+      );
+    } catch (e) {
+      debugPrint('ApiService.loginWithGoogle error: $e');
       return AuthResult(
         success: false,
         errorMessage: 'Unable to connect to Pine Valley club server. Please verify your connection.',

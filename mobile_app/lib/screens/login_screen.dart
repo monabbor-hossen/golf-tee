@@ -60,6 +60,186 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleLogin(String googleEmail) async {
+    final success = await ref
+        .read(memberProvider.notifier)
+        .loginWithGoogle(googleEmail);
+
+    if (success && mounted) {
+      final member = ref.read(memberProvider).member;
+      final firstName = member.name.isNotEmpty
+          ? member.name.split(' ').first
+          : 'Member';
+      ref.read(appProvider.notifier).showToast('Signed in with Google as $firstName');
+      ref.read(appProvider.notifier).navigateTo(AppScreen.home);
+    }
+  }
+
+  void _showGoogleSignInModal() {
+    final customGoogleController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(
+            24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'G',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.blue.shade600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    Text(
+                      'Select an authorized Google account',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFFB45309)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Security Policy: Only emails pre-registered by club administration can sign in with Google.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Enter Google Account Email:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: customGoogleController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: 'e.g. james.carter@mail.com',
+                prefixIcon: const Icon(Icons.alternate_email, size: 18),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            PrimaryButton(
+              text: 'Sign In With This Google Account',
+              onPressed: () {
+                final email = customGoogleController.text.trim();
+                if (email.isNotEmpty) {
+                  Navigator.pop(ctx);
+                  _handleGoogleLogin(email);
+                }
+              },
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Quick test accounts:',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                ActionChip(
+                  label: const Text('james.carter@mail.com (Admin Added)', style: TextStyle(fontSize: 11, color: AppColors.forest)),
+                  backgroundColor: AppColors.forest.withValues(alpha: 0.08),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _handleGoogleLogin('james.carter@mail.com');
+                  },
+                ),
+                ActionChip(
+                  label: const Text('mina.lee@mail.com (Admin Added)', style: TextStyle(fontSize: 11, color: AppColors.forest)),
+                  backgroundColor: AppColors.forest.withValues(alpha: 0.08),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _handleGoogleLogin('mina.lee@mail.com');
+                  },
+                ),
+                ActionChip(
+                  label: const Text('unregistered@gmail.com (Test Rejection)', style: TextStyle(fontSize: 11, color: AppColors.danger)),
+                  backgroundColor: AppColors.dangerLight,
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _handleGoogleLogin('unregistered@gmail.com');
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showForgotPinDialog() {
     showModalBottomSheet(
       context: context,
@@ -579,9 +759,78 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 16),
 
                     PrimaryButton(
-                      text: 'Sign In to Portal',
+                      text: 'Sign In with Email & Password',
                       isLoading: memberState.isLoading,
                       onPressed: _validateAndSubmit,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'OR',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade500,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Continue with Google Button
+                    OutlinedButton(
+                      onPressed: memberState.isLoading ? null : _showGoogleSignInModal,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.textMain,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'G',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF4285F4),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textMain,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -618,7 +867,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Authorized Member Access',
+                            'Admin Invite-Only Membership',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -627,7 +876,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Access is restricted to verified Pine Valley Golf Club members and authorized guests. Credentials are authenticated directly with the club administration system.',
+                            'Public registration is disabled. Member accounts are created exclusively by Pine Valley Club Administration. Once added, you will receive an email link to set your password. You can also sign in with Google using that registered email.',
                             style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textMuted,
