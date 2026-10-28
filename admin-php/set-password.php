@@ -3,26 +3,77 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-use App\Services\MemberService;
+use App\Core\Session;
 use App\Repositories\MemberRepository;
+use App\Services\MemberService;
+
+Session::start();
 
 $memberRepo = new MemberRepository();
 $memberService = new MemberService($memberRepo);
 
-$token = trim($_GET['token'] ?? $_POST['token'] ?? '');
 $error = '';
 $success = false;
 $member = null;
 
+// IP-based Rate Limiting (max 5 password setup attempts per hour)
+$ipKey = '_rate_limit_pwd_' . md5($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+$attempts = (int)Session::get($ipKey, 0);
+$lastAttemptTime = (int)Session::get($ipKey . '_time', 0);
+if ($attempts >= 5 && (time() - $lastAttemptTime) < 3600) {
+    http_response_code(429);
+    $error = 'Rate limit exceeded: Maximum 5 password setup attempts per hour reached from this IP address. Please wait before trying again.';
+}
+
+use App\Core\Request;
+
+$request = Request::createFromGlobals();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Session::validateRequestCsrf();
+}
+
+$passwordResetService = new \App\Services\PasswordResetService();
+
+// Extract token using centralized Request helper
+$token = $request->getToken();
+$pdo = \App\Core\Database::pdo();
+
 if (!empty($token)) {
-    $member = $memberRepo->findByToken($token);
+    // Finding 3.6: Verify token exists in database and is unexpired before allowing password set
+    $stmt = $pdo->prepare('SELECT id, password_reset_expires FROM members WHERE password_reset_token = ?');
+    $stmt->execute([$token]);
+    $member = $stmt->fetch();
     if (!$member) {
-        $error = 'This password setup link is invalid or has expired. Please contact Pine Valley Club Administration at (555) 301-2200 to request a new link.';
+        $stmt = $pdo->prepare('SELECT id, setup_token_expires as password_reset_expires FROM members WHERE setup_token = ?');
+        $stmt->execute([$token]);
+        $member = $stmt->fetch();
+    }
+    if (!$member || strtotime((string)($member['password_reset_expires'] ?? '')) < time()) {
+        die('Invalid or expired token');
+    }
+
+    // Validate format (alphanumeric hex string)
+    if (!preg_match('/^[a-f0-9]{32,64}$/i', $token)) {
+        $error = 'Invalid activation token format. Please check the link from your email.';
+    } else {
+        // Explicit SELECT query to verify token exists, is not expired, and belongs to valid member
+        $member = $passwordResetService->verifyToken($token);
+        if (!$member) {
+            $error = 'This password setup link is invalid or has expired. Please contact Pine Valley Club Administration at (555) 301-2200 to request a new link.';
+        } else {
+            // Validate token ownership against authenticated user ID before processing password update
+            $authenticatedUserId = Session::getUserId();
+            if ($authenticatedUserId !== null && (int)$member['id'] !== (int)$authenticatedUserId && !Session::isStaff()) {
+                $error = 'Access denied: Token does not belong to the currently authenticated user.';
+                $member = null;
+            }
+        }
     }
 } else {
     $error = 'No activation token provided. Please click the link sent to your email.';
 }
 
+// Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error) && $member) {
     $password = (string)($_POST['password'] ?? '');
     $confirmPassword = (string)($_POST['confirm_password'] ?? '');
@@ -32,11 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error) && $member) {
     } elseif ($password !== $confirmPassword) {
         $error = 'The passwords entered do not match. Please verify and try again.';
     } else {
-        $res = $memberService->setPasswordViaToken($token, $password);
+        $res = $passwordResetService->resetPassword($token, $password);
         if ($res['success']) {
             $success = true;
+            Session::remove($ipKey);
+            Session::remove($ipKey . '_time');
         } else {
             $error = $res['message'];
+            Session::set($ipKey, $attempts + 1);
+            Session::set($ipKey . '_time', time());
         }
     }
 }
@@ -349,6 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error) && $member) {
       </p>
 
       <form method="post" id="setupForm" onsubmit="return validateForm()">
+        <?= csrfField() ?>
         <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
 
         <div class="field-group">

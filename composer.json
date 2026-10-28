@@ -1,0 +1,35 @@
+{
+    "name": "golftee/golf-tee",
+    "description": "GolfTee — Golf Club Booking & Course Management System Backend API & Web Admin",
+    "type": "project",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Monabbor Hossen",
+            "email": "mdmonabborhossen@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2.0",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "phpmailer/phpmailer": "^6.9.3"
+    },
+    "require-dev": {},
+    "_comment": "Convenience wrapper - run composer install in admin-php/ for production",
+    "autoload": {
+        "psr-4": {
+            "App\\": "admin-php/app/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

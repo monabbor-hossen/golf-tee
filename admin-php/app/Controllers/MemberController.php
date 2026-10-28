@@ -21,6 +21,10 @@ class MemberController
     public function index(Request $request): void
     {
         Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::redirect('login.php');
+            return;
+        }
 
         // Handle POST actions
         if ($request->isPost()) {
@@ -29,6 +33,10 @@ class MemberController
 
             try {
                 if ($action === 'add') {
+                    $email = trim((string)$request->post('email', ''));
+                    if ($this->memberService->emailExists($email)) {
+                        throw new \Exception('Email already registered');
+                    }
                     $newId = $this->memberService->addMember($request->all());
                     Session::setFlash('success', 'Member added successfully and password setup email dispatched!');
                     Response::redirect('members.php?memberId=' . $newId . '&msg=invite_sent');
@@ -63,10 +71,40 @@ class MemberController
                 }
 
                 if ($action === 'delete') {
+                    if (!Session::hasRole('manager') && !Session::hasRole('admin') && !Session::hasRole('owner')) {
+                        Session::setFlash('error', 'Only management staff may delete members.');
+                        Response::redirect('members.php');
+                        return;
+                    }
                     $id = $request->getInt('id');
-                    $this->memberService->deleteMember($id);
-                    Session::setFlash('success', 'Member deleted.');
+                    if ($id === Session::getUserId()) {
+                        Session::setFlash('error', 'Cannot delete your own account');
+                        Response::redirect('members.php');
+                        return;
+                    }
+                    if ($this->memberService->hasFutureBookings($id)) {
+                        throw new \Exception('Cannot delete member with active bookings');
+                    }
+
+                        $stmt = $db->prepare("SELECT COUNT(*) FROM transactions WHERE member_id = ? AND status = 'Pending'");
+                        $stmt->execute([$id]);
+                        if ((int)$stmt->fetchColumn() > 0) {
+                            Session::setFlash('error', 'Cannot delete member with pending transactions.');
+                            Response::redirect('members.php');
+                            return;
+                        }
+
+                        $db->beginTransaction();
+                        try {
+                            $this->memberService->deleteMember($id);
+                            $db->commit();
+                            Session::setFlash('success', 'Member deleted successfully.');
+                        } catch (\Throwable $e) {
+                            $db->rollBack();
+                            Session::setFlash('error', 'Failed to delete member: ' . $e->getMessage());
+                        }
                     Response::redirect('members.php');
+                    return;
                 }
             } catch (\InvalidArgumentException $e) {
                 Session::setFlash('error', $e->getMessage());
@@ -113,5 +151,100 @@ class MemberController
         $data['flashError']   = Session::getFlash('error');
 
         View::render('members', $data);
+    }
+
+    public function create(Request $request): void
+    {
+        Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::forbidden('Access denied. Staff role required.');
+            return;
+        }
+        $this->index($request);
+    }
+
+    public function store(Request $request): void
+    {
+        Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::forbidden('Access denied. Staff role required.');
+            return;
+        }
+        $this->index($request);
+    }
+
+    public function edit(Request $request): void
+    {
+        Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::forbidden('Access denied. Staff role required.');
+            return;
+        }
+        $this->index($request);
+    }
+
+    public function update(Request $request): void
+    {
+        Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::forbidden('Access denied. Staff role required.');
+            return;
+        }
+        $this->index($request);
+    }
+
+    public function destroy(Request $request): void
+    {
+        Session::requireAuth();
+        if (!Session::isStaff()) {
+            Response::forbidden('Access denied. Staff role required.');
+            return;
+        }
+        if (!Session::hasRole('manager') && !Session::hasRole('admin') && !Session::hasRole('owner')) {
+            Response::forbidden('Access denied. Manager role required.');
+            return;
+        }
+
+        $id = $request->getInt('id');
+        if ($id > 0) {
+            // Finding 3.13: Prevent deletion of owner/admin accounts
+            $target = $this->memberService->getMember($id);
+            if ($target && isset($target['role']) && in_array(strtolower((string)$target['role']), ['owner', 'admin'], true)) {
+                Response::forbidden('Cannot delete admin accounts');
+                return;
+            }
+
+            if ($target && isset($target['role']) && getRoleLevel($target['role']) >= getRoleLevel(Session::getRole())) {
+                throw new \Exception('Insufficient privileges');
+            }
+
+            // Finding 4.1: Prevent deletion of current user's own account
+            if ($id === Session::getUserId()) {
+                throw new \Exception('Cannot delete own account');
+            }
+
+            // Explicit guard: DELETE FROM members WHERE id > 0
+            $this->memberService->deleteMember($id);
+            Session::setFlash('success', 'Member deleted successfully.');
+        }
+        Response::redirect('members.php');
+    }
+
+    private function getRoleLevel(?string $role): int
+    {
+        return getRoleLevel($role);
+    }
+}
+
+if (!function_exists('getRoleLevel')) {
+    function getRoleLevel(?string $role): int {
+        return match (strtolower((string)$role)) {
+            'owner' => 100,
+            'admin' => 80,
+            'manager' => 60,
+            'pro' => 40,
+            'staff' => 20,
+            default => 0,
+        };
     }
 }

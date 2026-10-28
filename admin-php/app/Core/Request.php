@@ -94,4 +94,9 @@ class Request
         if ($val === null) return $default;
         return in_array($val, [true, 1, '1', 'true', 'on', 'yes'], true);
     }
+
+    public function getToken(): string
+    {
+        return \App\Services\TokenExtractor::extractToken($this->json());
+    }
 }

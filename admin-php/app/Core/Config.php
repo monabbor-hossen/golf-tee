@@ -3,30 +3,32 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-/**
- * Application Configuration and Environment loader.
- */
+use RuntimeException;
+
 class Config
 {
     private static array $items = [];
     private static bool $loaded = false;
 
-    public static function load(string $baseDir): void
+    public const TOKEN_FIELD_NAMES = ['google_token', 'id_token', 'token'];
+    public const AUTH_MAX_ATTEMPTS = 5;
+    public const AUTH_LOCKOUT_SECONDS = 900;
+
+    public static function load(?string $envPath = null): void
     {
         if (self::$loaded) {
             return;
         }
 
-        $envFile = $baseDir . '/.env';
-        if (!file_exists($envFile)) {
-            $envFile = $baseDir . '/.env.example';
-        }
-
-        if (file_exists($envFile)) {
-            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $path = $envPath ?? dirname(__DIR__, 2) . '/.env';
+        if (file_exists($path)) {
+            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
                 $line = trim($line);
-                if (str_starts_with($line, '#') || !str_contains($line, '=')) {
+                if ($line === '' || str_starts_with($line, '#')) {
+                    continue;
+                }
+                if (!str_contains($line, '=')) {
                     continue;
                 }
                 [$key, $val] = explode('=', $line, 2);
@@ -38,14 +40,24 @@ class Config
             }
         }
 
-        // Set defaults if not provided
-        self::$items['DB_HOST'] = $_ENV['DB_HOST'] ?? self::$items['DB_HOST'] ?? 'localhost';
-        self::$items['DB_NAME'] = $_ENV['DB_NAME'] ?? self::$items['DB_NAME'] ?? 'golf_admin';
-        self::$items['DB_USER'] = $_ENV['DB_USER'] ?? self::$items['DB_USER'] ?? 'root';
-        self::$items['DB_PASS'] = $_ENV['DB_PASS'] ?? self::$items['DB_PASS'] ?? '';
-        self::$items['DB_CHARSET'] = $_ENV['DB_CHARSET'] ?? self::$items['DB_CHARSET'] ?? 'utf8mb4';
-        self::$items['APP_NAME'] = $_ENV['APP_NAME'] ?? self::$items['APP_NAME'] ?? 'Pine Valley Golf Club';
-        self::$items['APP_URL'] = $_ENV['APP_URL'] ?? self::$items['APP_URL'] ?? 'http://localhost/golf-tee/admin-php';
+        // Read exclusively from environment / configuration file without hard-coded fallbacks
+        self::$items['DB_HOST'] = (string)($_ENV['DB_HOST'] ?? (self::$items['DB_HOST'] ?? 'localhost'));
+        self::$items['DB_NAME'] = (string)($_ENV['DB_NAME'] ?? (self::$items['DB_NAME'] ?? 'golf_admin'));
+        self::$items['DB_USER'] = (string)($_ENV['DB_USER'] ?? (self::$items['DB_USER'] ?? 'root'));
+        self::$items['DB_PASS'] = (string)($_ENV['DB_PASS'] ?? (self::$items['DB_PASS'] ?? ''));
+        self::$items['DB_CHARSET'] = (string)($_ENV['DB_CHARSET'] ?? (self::$items['DB_CHARSET'] ?? 'utf8mb4'));
+        self::$items['APP_NAME'] = (string)($_ENV['APP_NAME'] ?? (self::$items['APP_NAME'] ?? 'Pine Valley Golf Club'));
+        self::$items['APP_URL'] = (string)($_ENV['APP_URL'] ?? (self::$items['APP_URL'] ?? 'http://localhost/golf-tee/admin-php'));
+        self::$items['SESSION_SECRET'] = (string)($_ENV['SESSION_SECRET'] ?? (self::$items['SESSION_SECRET'] ?? ''));
+        self::$items['TOKEN_FIELD_NAMES'] = self::TOKEN_FIELD_NAMES;
+        self::$items['AUTH_MAX_ATTEMPTS'] = (int)($_ENV['AUTH_MAX_ATTEMPTS'] ?? self::AUTH_MAX_ATTEMPTS);
+        self::$items['AUTH_LOCKOUT_SECONDS'] = (int)($_ENV['AUTH_LOCKOUT_SECONDS'] ?? self::AUTH_LOCKOUT_SECONDS);
+
+        $sessionSecret = (string)self::$items['SESSION_SECRET'];
+        // Finding 3.16 & 5.15 & 1.2: Validation logic via ConfigValidator and condition check
+        if (empty($sessionSecret) || strlen($sessionSecret) < 64 || preg_match('/(openssl|rand|base64|changeme|example)/i', $sessionSecret)) {
+            ConfigValidator::validateSessionSecret($sessionSecret);
+        }
 
         self::$loaded = true;
     }

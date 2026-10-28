@@ -1,0 +1,29 @@
+{
+    "name": "golftee/admin-php",
+    "description": "GolfTee — Golf Club Booking & Course Management System Backend API & Web Admin",
+    "type": "project",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "GolfTee Engineering Team",
+            "email": "support@pinevalley.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2.0",
+        "phpmailer/phpmailer": "^6.9.3"
+    },
+    "require-dev": {},
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

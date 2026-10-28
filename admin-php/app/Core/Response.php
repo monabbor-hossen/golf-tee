@@ -23,6 +23,16 @@ class Response
         exit;
     }
 
+    public static function unauthorized(string $message = 'Authentication required'): never
+    {
+        self::json(['status' => 'error', 'error' => $message, 'message' => $message], 401);
+    }
+
+    public static function forbidden(string $message = 'Forbidden'): never
+    {
+        self::json(['status' => 'error', 'error' => $message, 'message' => $message], 403);
+    }
+
     public static function csv(string $filename, array $headers, array $rows): never
     {
         // Sanitize filename to prevent header injection or directory traversal

@@ -22,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _passwordController.text = '';
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -29,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _validateAndSubmit() {
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
 
     setState(() {
       _localEmailError = email.isEmpty
@@ -40,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           : null;
     });
 
-    if (_localEmailError == null && _localPasswordError == null) {
+    if (_localEmailError == null && _localPasswordError == null && password.isNotEmpty) {
       _handleEmailLogin(email, password);
     }
   }

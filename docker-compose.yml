@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # ── PHP 8.2 + Apache Web Server ───────────────────────────────────
+  web:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    container_name: golf_tee_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=golf_admin
+      - DB_USER=golf_user
+      - DB_PASS=${MYSQL_PASSWORD}
+      - APP_NAME=Pine Valley Golf Club
+      - APP_URL=http://localhost:8080/admin-php
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── MySQL 8.0 Database Server ──────────────────────────────────────
+  db:
+    image: mysql:8.0.42
+    container_name: golf_tee_db
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    # Configured via root .env (see .env.example for MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD generation instructions)
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: golf_admin
+      MYSQL_USER: golf_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # Note: database/migrations/ folder is for manual schema updates only, not auto-applied by Docker
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$$MYSQL_ROOT_PASSWORD\" && [ $${#MYSQL_ROOT_PASSWORD} -ge 32 ] && [ \"$$MYSQL_ROOT_PASSWORD\" != 'password' ] && [ \"$$MYSQL_ROOT_PASSWORD\" != 'changeme' ] && [ $${#MYSQL_PASSWORD} -ge 32 ] && [ \"$$MYSQL_PASSWORD\" != 'password' ] && [ \"$$MYSQL_PASSWORD\" != 'changeme' ] && mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Note: database/migrations/ folder is for manual schema updates only, not auto-applied by Docker
+  # ── phpMyAdmin Database GUI ────────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: golf_tee_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      - db
+
+volumes:
+  db_data:

@@ -40,21 +40,27 @@ class BookingService
         int $tee,
         int $party,
         int $holes,
-        string $status = 'Booked'
+        string $status = 'Booked',
+        ?int $explicitMemberId = null,
+        ?int $staffId = null
     ): ?int {
         $name = trim($name);
         if ($name === '') {
             return null;
         }
 
-        // Check if slot already taken
-        if ($this->bookingRepo->slotExists($date, $slot, $tee)) {
+        // Check if slot already taken via centralized BookingConflictChecker
+        $conflictChecker = new BookingConflictChecker();
+        if ($conflictChecker->hasConflict($date, $slot, $tee)) {
             return null;
         }
 
         // Check member
-        $member = $this->memberRepo->findByName($name);
-        $memberId = $member ? (int)$member['id'] : null;
+        $memberId = $explicitMemberId;
+        if ($memberId === null) {
+            $member = $this->memberRepo->findByName($name);
+            $memberId = $member ? (int)$member['id'] : null;
+        }
 
         $bookingId = $this->bookingRepo->create([
             'tee_date'  => $date,
@@ -94,7 +100,22 @@ class BookingService
             'forest'
         );
 
+        // Audit Finding 3.9: Add activity log entry when staff creates booking on behalf of member
+        $effectiveStaffId = $staffId ?? \App\Core\Session::getUserId();
+        if ($effectiveStaffId !== null && $effectiveStaffId !== $memberId) {
+            $this->activityRepo->log(
+                'Administrative booking created',
+                "Staff #{$effectiveStaffId} created booking on behalf of member " . ($memberId ? "#{$memberId} ({$name})" : $name),
+                'sand'
+            );
+        }
+
         return $bookingId;
+    }
+
+    public function getBooking(int $bookingId): ?array
+    {
+        return $this->bookingRepo->findById($bookingId);
     }
 
     public function checkIn(int $bookingId): bool

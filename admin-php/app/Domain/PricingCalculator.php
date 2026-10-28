@@ -37,4 +37,41 @@ class PricingCalculator
 
         return (float)($is18 ? ($pricingSettings['price_weekday_18'] ?? 85) : ($pricingSettings['price_weekday_9'] ?? 48));
     }
+
+    /**
+     * Calculate total and itemized breakdown for a booking.
+     */
+    public static function calculateTotal(array $bookingDetails, array $pricingSettings = []): array
+    {
+        $holes = (int)($bookingDetails['holes'] ?? 18);
+        $date = (string)($bookingDetails['date'] ?? $bookingDetails['tee_date'] ?? date('Y-m-d'));
+        $slot = (int)($bookingDetails['slot'] ?? $bookingDetails['tee_slot'] ?? 480);
+        $party = (int)($bookingDetails['party'] ?? $bookingDetails['players'] ?? 1);
+        $addons = $bookingDetails['addons'] ?? [];
+
+        $greenFeePerPlayer = self::calculate($holes, $date, $slot, $pricingSettings);
+        $greenFeesTotal = $greenFeePerPlayer * $party;
+
+        $cartFee = 0.0;
+        if (in_array('cart', $addons, true)) {
+            $cartFee = (float)($pricingSettings['cart_fee'] ?? 25.0) * ceil($party / 2);
+        }
+
+        $caddieFee = 0.0;
+        if (in_array('caddie', $addons, true)) {
+            $caddieFee = (float)($pricingSettings['caddie_fee'] ?? 50.0);
+        }
+
+        $total = $greenFeesTotal + $cartFee + $caddieFee;
+
+        return [
+            'green_fee_per_player' => $greenFeePerPlayer,
+            'green_fees_total'     => $greenFeesTotal,
+            'cart_fee'             => $cartFee,
+            'caddie_fee'           => $caddieFee,
+            'total'                => $total,
+            'party'                => $party,
+            'holes'                => $holes,
+        ];
+    }
 }

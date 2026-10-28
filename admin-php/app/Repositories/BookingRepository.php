@@ -7,9 +7,26 @@ use App\Core\Database;
 
 class BookingRepository
 {
-    public function findById(int $id): ?array
+    public function findById(int $id, ?int $authenticatedMemberId = null, bool $isStaff = true): ?array
     {
-        return Database::fetchOne('SELECT * FROM bookings WHERE id = ?', [$id]);
+        $sql = 'SELECT b.*, m.name as member_name, m.email as member_email FROM bookings b LEFT JOIN members m ON b.member_id = m.id WHERE b.id = ?';
+        $booking = Database::fetchOne($sql, [$id]);
+        if (!$booking) {
+            return null;
+        }
+        if ($authenticatedMemberId !== null && (int)($booking['member_id'] ?? 0) !== $authenticatedMemberId && !$isStaff) {
+            return null;
+        }
+        return $booking;
+    }
+
+    public function findByTeeTimeRange(string $date): array
+    {
+        // Replaces WHERE DATE(tee_time) = ? with range comparison to allow index usage on tee_time
+        return Database::fetchAll(
+            'SELECT * FROM bookings WHERE tee_time >= ? AND tee_time < DATE_ADD(?, INTERVAL 1 DAY)',
+            [$date, $date]
+        );
     }
 
     public function getByDate(string $date): array
@@ -71,26 +88,31 @@ class BookingRepository
 
     public function getStartingSoon(string $date, int $fromSlot, int $limit = 7): array
     {
-        return Database::fetchAll(
-            "SELECT * FROM bookings WHERE tee_date = ? AND tee_slot >= ? AND status != 'No-show' ORDER BY tee_slot ASC, tee ASC LIMIT " . (int)$limit,
-            [$date, $fromSlot]
-        );
+        $stmt = Database::pdo()->prepare("SELECT * FROM bookings WHERE tee_date = ? AND tee_slot >= ? AND status != 'No-show' ORDER BY tee_slot ASC, tee ASC LIMIT ?");
+        $stmt->bindValue(1, $date, \PDO::PARAM_STR);
+        $stmt->bindValue(2, $fromSlot, \PDO::PARAM_INT);
+        $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getLateBookings(string $date, int $nowMin, int $limit = 5): array
     {
-        return Database::fetchAll(
-            "SELECT * FROM bookings WHERE tee_date = ? AND status = 'Booked' AND tee_slot < ? ORDER BY tee_slot ASC LIMIT " . (int)$limit,
-            [$date, $nowMin]
-        );
+        $stmt = Database::pdo()->prepare("SELECT * FROM bookings WHERE tee_date = ? AND status = 'Booked' AND tee_slot < ? ORDER BY tee_slot ASC LIMIT ?");
+        $stmt->bindValue(1, $date, \PDO::PARAM_STR);
+        $stmt->bindValue(2, $nowMin, \PDO::PARAM_INT);
+        $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getByMemberId(int $memberId, int $limit = 5): array
     {
-        return Database::fetchAll(
-            'SELECT * FROM bookings WHERE member_id = ? ORDER BY tee_date DESC, tee_slot DESC LIMIT ' . (int)$limit,
-            [$memberId]
-        );
+        $stmt = Database::pdo()->prepare('SELECT * FROM bookings WHERE member_id = ? ORDER BY tee_date DESC, tee_slot DESC LIMIT ?');
+        $stmt->bindValue(1, $memberId, \PDO::PARAM_INT);
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getBookedSlotsMap(string $date): array

@@ -10,11 +10,12 @@ class EventRepository
     public function findById(int $id): ?array
     {
         $sql = '
-            SELECT e.*, COUNT(r.id) as reg_count
+            SELECT e.*, s.name as creator_name, COUNT(r.id) as reg_count
             FROM events e
+            LEFT JOIN staff s ON e.created_by = s.id
             LEFT JOIN event_registrations r ON r.event_id = e.id
             WHERE e.id = ?
-            GROUP BY e.id
+            GROUP BY e.id, s.name
         ';
         return Database::fetchOne($sql, [$id]);
     }
@@ -77,9 +78,10 @@ class EventRepository
     public function search(string $query, int $limit = 3): array
     {
         $term = '%' . Database::escapeLike($query) . '%';
-        return Database::fetchAll(
-            'SELECT * FROM events WHERE name LIKE ? ORDER BY event_date ASC LIMIT ' . (int)$limit,
-            [$term]
-        );
+        $stmt = Database::pdo()->prepare('SELECT * FROM events WHERE name LIKE ? ORDER BY event_date ASC LIMIT ?');
+        $stmt->bindValue(1, $term, \PDO::PARAM_STR);
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

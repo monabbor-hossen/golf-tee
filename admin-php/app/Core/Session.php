@@ -73,6 +73,25 @@ class Session
         }
     }
 
+    public static function requireStaff(): void
+    {
+        self::requireAuth();
+        if (!self::isStaff()) {
+            http_response_code(403);
+            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')) {
+                Response::json(['error' => 'Unauthorized - Staff access required'], 403);
+                exit;
+            }
+            Response::redirect('login.php');
+            exit;
+        }
+    }
+
+    public static function getUserId(): ?int
+    {
+        return self::getStaffId();
+    }
+
     public static function getStaffId(): ?int
     {
         self::start();
@@ -158,23 +177,59 @@ class Session
         return $_SESSION['_csrf_token'];
     }
 
+    /**
+     * Escape CSRF token specifically for HTML attributes/views.
+     */
+    public static function csrfTokenForHtml(): string
+    {
+        return htmlspecialchars(self::csrfToken(), ENT_QUOTES, 'UTF-8');
+    }
+
     public static function csrfField(): string
     {
-        $token = htmlspecialchars(self::csrfToken(), ENT_QUOTES, 'UTF-8');
-        return '<input type="hidden" name="_csrf" value="' . $token . '">';
+        return '<input type="hidden" name="_csrf" value="' . self::csrfTokenForHtml() . '">';
+    }
+
+    /**
+     * Extract stored session CSRF token and submitted request token into unified array.
+     */
+    private static function extractCsrfTokens(?string $token = null, ?Request $request = null): array
+    {
+        self::start();
+        $stored = (string)($_SESSION['_csrf_token'] ?? '');
+
+        $submitted = (string)($token ?? '');
+        if ($submitted === '') {
+            $req = $request ?? Request::createFromGlobals();
+            $submitted = (string)($req->post('_csrf') ?? '');
+            if ($submitted === '' && !empty($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                $submitted = (string)$_SERVER['HTTP_X_CSRF_TOKEN'];
+            }
+        }
+
+        return ['stored' => $stored, 'submitted' => $submitted];
+    }
+
+    public static function validateCsrf(?string $token = null): bool
+    {
+        $tokens = self::extractCsrfTokens($token);
+        if (empty($tokens['stored']) || empty($tokens['submitted'])) {
+            return false;
+        }
+        return \App\Services\CsrfValidator::validateToken($tokens['stored'], $tokens['submitted']) && hash_equals($tokens['stored'], $tokens['submitted']);
     }
 
     public static function verifyCsrfToken(?string $token): bool
     {
-        self::start();
-        if (empty($_SESSION['_csrf_token']) || empty($token)) {
-            return false;
-        }
-        return hash_equals($_SESSION['_csrf_token'], $token);
+        return self::validateCsrf($token);
     }
 
     /**
      * Validate CSRF on incoming POST requests.
+     * Enforces explicit token evaluation priority:
+     * Priority 1: Form body POST parameter '_csrf'
+     * Priority 2: AJAX request header 'X-CSRF-TOKEN'
+     * Fail: Rejects with 403 Forbidden if neither matches active session token.
      */
     public static function validateRequestCsrf(?Request $request = null): void
     {
@@ -183,10 +238,8 @@ class Session
             return;
         }
 
-        // Check POST param or HTTP Header X-CSRF-TOKEN
-        $submittedToken = (string)($req->post('_csrf') ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
-
-        if (!self::verifyCsrfToken($submittedToken)) {
+        $tokens = self::extractCsrfTokens(null, $req);
+        if (!self::validateCsrf($tokens['submitted'])) {
             http_response_code(403);
             if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
                 Response::json(['error' => 'Invalid or expired CSRF token.'], 403);

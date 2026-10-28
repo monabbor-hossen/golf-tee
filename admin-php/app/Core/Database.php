@@ -26,23 +26,35 @@ class Database
 
             $dsn = "mysql:host={$host};dbname={$db};charset={$charset}";
 
+            $errmode = (int)Config::get('DB_ERRMODE', PDO::ERRMODE_EXCEPTION);
+            $fetchMode = (int)Config::get('DB_FETCH_MODE', PDO::FETCH_ASSOC);
+            $emulatePrepares = (bool)Config::get('DB_EMULATE_PREPARES', false);
+
+            $options = (array)Config::get('DB_OPTIONS', [
+                PDO::ATTR_ERRMODE            => $errmode,
+                PDO::ATTR_DEFAULT_FETCH_MODE => $fetchMode,
+                PDO::ATTR_EMULATE_PREPARES   => $emulatePrepares,
+            ]);
+
             try {
-                self::$instance = new PDO($dsn, $user, $pass, [
-                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES   => false, // Strictly force true server-side prepared statements
-                ]);
+                self::$instance = new PDO($dsn, $user, $pass, $options);
             } catch (PDOException $e) {
-                http_response_code(500);
                 error_log('Database connection error: ' . $e->getMessage());
 
                 if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+                    http_response_code(500);
                     header('Content-Type: application/json');
-                    die(json_encode(['error' => 'Database connection failed. Please ensure MySQL is running.']));
+                    die(json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]));
                 }
-                die('<div style="font-family:sans-serif;padding:24px;color:#b91c1c;background:#fef2f2;border:1px solid #f87171;border-radius:8px;">' .
-                    '<h3>Database Connection Error</h3>' .
-                    '<p>Could not connect to the database. Please verify your credentials and ensure MySQL is running in XAMPP.</p>' .
+                die('<div style="font-family:system-ui,-apple-system,sans-serif;max-width:640px;margin:40px auto;padding:24px;color:#991b1b;background:#fef2f2;border:1px solid #f87171;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">' .
+                    '<h2 style="margin-top:0;font-size:20px;">Database Connection Error</h2>' .
+                    '<p><strong>Error details:</strong> ' . htmlspecialchars($e->getMessage()) . '</p>' .
+                    '<hr style="border:0;border-top:1px solid #fecaca;margin:16px 0;">' .
+                    '<p style="color:#4b5563;font-size:14px;line-height:1.5;"><strong>Troubleshooting Checklist:</strong><br>' .
+                    '1. Verify your <code>DB_HOST</code> in <code>.env</code> is your InfinityFree SQL hostname (e.g. <code>sql105.infinityfree.com</code>), <em>not</em> <code>localhost</code>.<br>' .
+                    '2. Ensure <code>DB_NAME</code> starts with your prefix (e.g. <code>if0_xxxx_golf</code>).<br>' .
+                    '3. Ensure <code>DB_USER</code> is your InfinityFree account username.<br>' .
+                    '4. Ensure <code>DB_PASS</code> is your hosting account password.</p>' .
                     '</div>');
             }
         }

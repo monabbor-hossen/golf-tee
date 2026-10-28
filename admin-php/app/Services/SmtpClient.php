@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Config;
+
 /**
  * Lightweight native SMTP client for delivering emails directly
  * to external mail servers (e.g. Gmail SMTP, SendGrid, Brevo, Mailgun)
@@ -25,11 +27,19 @@ class SmtpClient
         string $encryption = '',
         int $timeout = 10
     ) {
-        $this->host = $host ?: (string)($_ENV['MAIL_HOST'] ?? '');
-        $this->port = $port ?: (int)($_ENV['MAIL_PORT'] ?? 587);
-        $this->username = $username ?: (string)($_ENV['MAIL_USERNAME'] ?? '');
-        $this->password = $password ?: (string)($_ENV['MAIL_PASSWORD'] ?? '');
-        $this->encryption = strtolower($encryption ?: (string)($_ENV['MAIL_ENCRYPTION'] ?? 'tls'));
+        if ($host !== '') {
+            $this->host = $host;
+            $this->port = $port > 0 ? $port : 587;
+            $this->username = $username;
+            $this->password = $password;
+            $this->encryption = strtolower($encryption !== '' ? $encryption : 'tls');
+        } else {
+            $this->host = (string)Config::get('MAIL_HOST', '');
+            $this->port = (int)Config::get('MAIL_PORT', 587);
+            $this->username = (string)Config::get('MAIL_USERNAME', '');
+            $this->password = (string)Config::get('MAIL_PASSWORD', '');
+            $this->encryption = strtolower((string)Config::get('MAIL_ENCRYPTION', 'tls'));
+        }
         $this->timeout = $timeout;
     }
 
@@ -46,6 +56,15 @@ class SmtpClient
      */
     public function send(string $to, string $subject, string $htmlBody, string $from = '', string $fromName = ''): array
     {
+        if (empty($this->password)) {
+            throw new \Exception('MAIL_PASSWORD cannot be empty. Please configure a valid SMTP password.');
+        }
+
+        $cleanPassword = str_replace(' ', '', $this->password);
+        if (strlen($this->password) !== 16 && strlen($cleanPassword) !== 16) {
+            throw new \Exception('Invalid Google App Password format');
+        }
+
         if (!$this->isConfigured()) {
             return [
                 'success' => false,
@@ -53,8 +72,8 @@ class SmtpClient
             ];
         }
 
-        $fromAddress = $from ?: (string)($_ENV['MAIL_FROM_ADDRESS'] ?? $this->username);
-        $fromName    = $fromName ?: (string)($_ENV['MAIL_FROM_NAME'] ?? 'Pine Valley Golf Club');
+        $fromAddress = $from ?: (string)Config::get('MAIL_FROM_ADDRESS', $this->username);
+        $fromName    = $fromName ?: (string)Config::get('MAIL_FROM_NAME', 'Pine Valley Golf Club');
 
         $remoteSocket = ($this->encryption === 'ssl' ? 'ssl://' : '') . $this->host . ':' . $this->port;
         $context = stream_context_create([

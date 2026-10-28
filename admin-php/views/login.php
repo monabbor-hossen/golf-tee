@@ -90,5 +90,8 @@ $appUrl = Config::get('APP_URL');
     Demo account: <strong>admin@pinevalley.com</strong> / <strong>password</strong>
   </div>
 </div>
+<?php if (App\Core\Config::get('ENABLE_VIBE96_DEMO', 'false') === 'true'): ?>
+<script src="https://vibe96.com/js/v96-demo.js" defer></script>
+<?php endif; ?>
 </body>
 </html>

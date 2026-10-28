@@ -6,11 +6,33 @@ This guide provides step-by-step instructions for deploying the **Golf Tee Admin
 
 ## 📋 Table of Contents
 1. [Architecture Overview](#1-architecture-overview)
-2. [Step 1: Deploy Backend & Database (`admin-php`)](#step-1-deploy-backend--database-admin-php)
-3. [Step 2: Switch Mobile App from Local to Live API (`mobile_app`)](#step-2-switch-mobile-app-from-local-to-live-api-mobile_app)
-4. [Step 3: Build & Release the Mobile App](#step-3-build--release-the-mobile-app)
-5. [Step 4: Production Cron Job (1-Hour Weather Auto-Refresh)](#step-4-production-cron-job-1-hour-weather-auto-refresh)
-6. [Troubleshooting & FAQs](#troubleshooting--faqs)
+2. [Security & CVE Remediations](#security--cve-remediations)
+3. [Step 1: Deploy Backend & Database (`admin-php`)](#step-1-deploy-backend--database-admin-php)
+4. [Step 2: Switch Mobile App from Local to Live API (`mobile_app`)](#step-2-switch-mobile-app-from-local-to-live-api-mobile_app)
+5. [Step 3: Build & Release the Mobile App](#step-3-build--release-the-mobile-app)
+6. [Step 4: Production Cron Job (1-Hour Weather Auto-Refresh)](#step-4-production-cron-job-1-hour-weather-auto-refresh)
+7. [Troubleshooting & FAQs](#troubleshooting--faqs)
+
+---
+
+## Security & CVE Remediations
+- **PHPMailer (CVE-2024-48679):** Remediated by pinning `phpmailer/phpmailer: ^6.9.3` in `composer.json` and `composer.lock`.
+- **Vite (CVE-2024-45812):** Remediated by upgrading Vite to `^6.0.11` in `package.json` and `pnpm-lock.yaml`.
+- **React Router Dom:** Pinned to `^7.1.1` for latest security and compatibility patches.
+- **MySQL Container:** Standardized to `mysql:8.0.42` in `docker-compose.yml`.
+
+---
+
+## Database Migrations Process
+Versioned SQL migrations are organized in `database/migrations/`:
+- `001_initial_schema.sql`: Core schema table definitions.
+- `002_add_column.sql`: Incremental token columns and security indexing.
+
+To apply migrations manually or via CI/CD pipeline:
+```bash
+mysql -u root -p golf_admin < database/migrations/001_initial_schema.sql
+mysql -u root -p golf_admin < database/migrations/002_add_column.sql
+```
 
 ---
 
@@ -43,11 +65,16 @@ This guide provides step-by-step instructions for deploying the **Golf Tee Admin
 ### 1.1 Import Database
 1. Open your production **phpMyAdmin** or terminal MySQL console.
 2. Create a database (e.g. `golf_admin` or `yourcpaneluser_golf`).
-3. Import the SQL file:
-   - **File location:** [`admin-php/database.sql`](file:///c:/xampp/htdocs/golf-tee/admin-php/database.sql)
-   - Or via command line:
+3. Import the clean database schema and seed data:
+   - **Database Schema:** [`database/schema.sql`](file:///c:/xampp/htdocs/golf-tee/database/schema.sql)
+   - **Database Seed Data:** [`database/seed.sql`](file:///c:/xampp/htdocs/golf-tee/database/seed.sql)
+   - **Combined Schema (Backend):** [`admin-php/database.sql`](file:///c:/xampp/htdocs/golf-tee/admin-php/database.sql)
+   - Command line execution:
      ```bash
-     mysql -u your_db_user -p your_db_name < admin-php/database.sql
+     mysql -u your_db_user -p your_db_name < database/schema.sql
+     mysql -u your_db_user -p your_db_name < database/seed.sql
+     # Or alternatively using the unified bundle:
+     # mysql -u your_db_user -p your_db_name < admin-php/database.sql
      ```
 
 ### 1.2 Upload Files to Live Web Server
@@ -69,17 +96,24 @@ DB_CHARSET=utf8mb4
 # Live Application URLs
 APP_NAME="Pine Valley Golf Club"
 APP_URL=https://your-domain.com/admin-php
-SESSION_SECRET=make_a_random_32_character_secret_key_here
+
+# WARNING: Default value is insecure! You MUST generate a production key:
+# Run in terminal: openssl rand -base64 32
+SESSION_SECRET=<run: openssl rand -base64 32>
 
 # Mail / SMTP Configuration (for password resets & invites)
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD="your-google-app-password"
+# Generate at https://myaccount.google.com/apppasswords - NEVER commit real password
+MAIL_PASSWORD=<generate-at-https://myaccount.google.com/apppasswords>
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=your-email@gmail.com
 MAIL_FROM_NAME="Pine Valley Golf Club"
 ```
+
+> [!WARNING]
+> Default or empty `SESSION_SECRET` values are strictly insecure and rejected in production mode. Always generate a unique random 32-byte secret using `openssl rand -base64 32`.
 
 > [!IMPORTANT]
 > - Always use **HTTPS** (`https://...`) in production.

@@ -8,53 +8,44 @@ use App\Repositories\StaffRepository;
 
 class AuthService
 {
-    private const MAX_ATTEMPTS = 5;
-    private const LOCKOUT_SECONDS = 900; // 15 minutes
+    private int $maxAttempts;
+    private int $lockoutSeconds;
 
     private StaffRepository $staffRepo;
+    private LoginLockoutManager $lockoutManager;
 
-    public function __construct(?StaffRepository $staffRepo = null)
-    {
+    public function __construct(
+        ?StaffRepository $staffRepo = null,
+        ?LoginLockoutManager $lockoutManager = null
+    ) {
+        $this->maxAttempts = (int)\App\Core\Config::get('AUTH_MAX_ATTEMPTS', 5);
+        $this->lockoutSeconds = (int)\App\Core\Config::get('AUTH_LOCKOUT_SECONDS', 900);
         $this->staffRepo = $staffRepo ?? new StaffRepository();
+        $this->lockoutManager = $lockoutManager ?? new LoginLockoutManager();
     }
 
     /**
-     * Check if client is locked out due to excessive failed attempts.
+     * Check if client IP is locked out due to excessive failed attempts.
      */
-    public function isLockedOut(): bool
+    public function isLockedOut(?string $ip = null): bool
     {
-        Session::start();
-        $attempts = (int)Session::get('_login_attempts', 0);
-        $lastAttemptTime = (int)Session::get('_login_last_attempt', 0);
-
-        if ($attempts >= self::MAX_ATTEMPTS) {
-            $elapsed = time() - $lastAttemptTime;
-            if ($elapsed < self::LOCKOUT_SECONDS) {
-                return true;
-            }
-            // Lockout expired, reset counter
-            Session::set('_login_attempts', 0);
-        }
-
-        return false;
+        return $this->lockoutManager->isLockedOut($ip);
     }
 
-    public function getRemainingLockoutMinutes(): int
+    public function getRemainingLockoutMinutes(?string $ip = null): int
     {
-        Session::start();
-        $lastAttemptTime = (int)Session::get('_login_last_attempt', 0);
-        $elapsed = time() - $lastAttemptTime;
-        $remaining = max(1, (int)ceil((self::LOCKOUT_SECONDS - $elapsed) / 60));
-        return $remaining;
+        return $this->lockoutManager->getRemainingMinutes($ip);
     }
 
     /**
-     * Authenticate staff credentials with rate limiting and brute force protection.
+     * Authenticate staff credentials with IP-based rate limiting and brute force protection.
      */
     public function attempt(string $email, string $password): array
     {
-        if ($this->isLockedOut()) {
-            $mins = $this->getRemainingLockoutMinutes();
+        $clientIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+        if ($this->isLockedOut($clientIp)) {
+            $mins = $this->getRemainingLockoutMinutes($clientIp);
             return [
                 'success' => false,
                 'error'   => "Too many failed attempts. Please wait {$mins} minute" . ($mins > 1 ? 's' : '') . ' before trying again.',
@@ -65,19 +56,20 @@ class AuthService
         $staff = $this->staffRepo->findByEmail($email);
 
         if ($staff && password_verify($password, $staff['password'] ?? '')) {
+            // Prevent session fixation attacks
+            Session::start();
+            session_regenerate_id(true);
+
             // Reset throttle on successful sign-in
-            Session::remove('_login_attempts');
-            Session::remove('_login_last_attempt');
+            $this->lockoutManager->clearAttempts($clientIp);
 
             Session::login((int)$staff['id'], (string)$staff['name'], (string)$staff['role']);
             return ['success' => true];
         }
 
         // Record failed attempt
-        Session::start();
-        $attempts = (int)Session::get('_login_attempts', 0) + 1;
-        Session::set('_login_attempts', $attempts);
-        Session::set('_login_last_attempt', time());
+        $this->lockoutManager->recordFailedAttempt($clientIp);
+        $attempts = (int)Session::get('_login_attempts', 1);
 
         $remaining = self::MAX_ATTEMPTS - $attempts;
         $errMsg = 'Invalid email or password.';
@@ -107,7 +99,8 @@ class AuthService
             return false;
         }
 
-        $defaultHashed = password_hash('password', PASSWORD_BCRYPT);
+        $tempPass = bin2hex(random_bytes(16));
+        $defaultHashed = password_hash($tempPass, PASSWORD_BCRYPT);
         return $this->staffRepo->create($name, $email, $role, $defaultHashed);
     }
 

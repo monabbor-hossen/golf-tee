@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+\App\Core\Session::requireAuth();
+
 use App\Domain\SlotFormatter;
 
 $toneColors = ['forest'=>'dot-green','wait'=>'dot-amber','danger'=>'dot-red','sand'=>'dot-sand','gray'=>'dot-gray'];

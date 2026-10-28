@@ -1,0 +1,253 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Core;
+
+/**
+ * Session, Flash messaging, CSRF protection, and Auth State management.
+ */
+class Session
+{
+    private const SESSION_LIFETIME = 7200; // 2 hours
+
+    public static function start(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                       (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+
+            // Configure secure cookie parameters before starting session
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path'     => '/',
+                'domain'   => '',
+                'secure'   => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+
+            session_start();
+        }
+
+        // Check for session timeout
+        if (!empty($_SESSION['staff_id'])) {
+            $lastActivity = $_SESSION['_last_activity'] ?? time();
+            if (time() - $lastActivity > self::SESSION_LIFETIME) {
+                $_SESSION = [];
+                self::logout();
+                Response::redirect(Config::get('APP_URL') . '/login.php?timeout=1');
+            }
+            $_SESSION['_last_activity'] = time();
+        }
+    }
+
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        self::start();
+        return $_SESSION[$key] ?? $default;
+    }
+
+    public static function set(string $key, mixed $value): void
+    {
+        self::start();
+        $_SESSION[$key] = $value;
+    }
+
+    public static function remove(string $key): void
+    {
+        self::start();
+        unset($_SESSION[$key]);
+    }
+
+    public static function isAuthenticated(): bool
+    {
+        self::start();
+        return !empty($_SESSION['staff_id']);
+    }
+
+    public static function requireAuth(): void
+    {
+        self::start();
+        if (!self::isAuthenticated()) {
+            Response::redirect(Config::get('APP_URL') . '/login.php');
+        }
+    }
+
+    public static function requireStaff(): void
+    {
+        self::requireAuth();
+        if (!self::isStaff()) {
+            http_response_code(403);
+            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')) {
+                Response::json(['error' => 'Unauthorized - Staff access required'], 403);
+                exit;
+            }
+            Response::redirect('login.php');
+            exit;
+        }
+    }
+
+    public static function getUserId(): ?int
+    {
+        return self::getStaffId();
+    }
+
+    public static function getStaffId(): ?int
+    {
+        self::start();
+        return isset($_SESSION['staff_id']) ? (int)$_SESSION['staff_id'] : null;
+    }
+
+    public static function getStaffName(): string
+    {
+        self::start();
+        return (string)($_SESSION['staff_name'] ?? 'Admin');
+    }
+
+    public static function getStaffRole(): string
+    {
+        self::start();
+        return (string)($_SESSION['staff_role'] ?? 'Staff');
+    }
+
+    public static function getRoleLevel(?string $role = null): int
+    {
+        $roleName = strtolower($role ?? self::getStaffRole());
+        return match ($roleName) {
+            'owner' => 4,
+            'admin' => 3,
+            'manager' => 2,
+            'staff', 'pro' => 1,
+            default => 0,
+        };
+    }
+
+    public static function hasRole(string $role): bool
+    {
+        return strtolower(self::getStaffRole()) === strtolower($role);
+    }
+
+    public static function isStaff(): bool
+    {
+        return self::isAuthenticated() && self::getRoleLevel() >= 1;
+    }
+
+    public static function login(int $id, string $name, string $role): void
+    {
+        self::start();
+        // Prevent session fixation attack
+        session_regenerate_id(true);
+
+        $_SESSION['staff_id']       = $id;
+        $_SESSION['staff_name']     = $name;
+        $_SESSION['staff_role']     = $role;
+        $_SESSION['_last_activity'] = time();
+
+        // Refresh CSRF token for the authenticated session
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    public static function logout(): void
+    {
+        SessionManager::destroy();
+    }
+
+    public static function setFlash(string $type, string $message): void
+    {
+        FlashMessageBag::set($type, $message);
+    }
+
+    public static function getFlash(string $type): ?string
+    {
+        return FlashMessageBag::get($type);
+    }
+
+    public static function hasFlash(string $type): bool
+    {
+        return FlashMessageBag::has($type);
+    }
+
+    public static function csrfToken(): string
+    {
+        self::start();
+        if (empty($_SESSION['_csrf_token'])) {
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['_csrf_token'];
+    }
+
+    /**
+     * Escape CSRF token specifically for HTML attributes/views.
+     */
+    public static function csrfTokenForHtml(): string
+    {
+        return htmlspecialchars(self::csrfToken(), ENT_QUOTES, 'UTF-8');
+    }
+
+    public static function csrfField(): string
+    {
+        return '<input type="hidden" name="_csrf" value="' . self::csrfTokenForHtml() . '">';
+    }
+
+    /**
+     * Extract stored session CSRF token and submitted request token into unified array.
+     */
+    private static function extractCsrfTokens(?string $token = null, ?Request $request = null): array
+    {
+        self::start();
+        $stored = (string)($_SESSION['_csrf_token'] ?? '');
+
+        $submitted = (string)($token ?? '');
+        if ($submitted === '') {
+            $req = $request ?? Request::createFromGlobals();
+            $submitted = (string)($req->post('_csrf') ?? '');
+            if ($submitted === '' && !empty($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                $submitted = (string)$_SERVER['HTTP_X_CSRF_TOKEN'];
+            }
+        }
+
+        return ['stored' => $stored, 'submitted' => $submitted];
+    }
+
+    public static function validateCsrf(?string $token = null): bool
+    {
+        $tokens = self::extractCsrfTokens($token);
+        if (empty($tokens['stored']) || empty($tokens['submitted'])) {
+            return false;
+        }
+        return \App\Services\CsrfValidator::validateToken($tokens['stored'], $tokens['submitted']) && hash_equals($tokens['stored'], $tokens['submitted']);
+    }
+
+    public static function verifyCsrfToken(?string $token): bool
+    {
+        return self::validateCsrf($token);
+    }
+
+    /**
+     * Validate CSRF on incoming POST requests.
+     * Enforces explicit token evaluation priority:
+     * Priority 1: Form body POST parameter '_csrf'
+     * Priority 2: AJAX request header 'X-CSRF-TOKEN'
+     * Fail: Rejects with 403 Forbidden if neither matches active session token.
+     */
+    public static function validateRequestCsrf(?Request $request = null): void
+    {
+        $req = $request ?? Request::createFromGlobals();
+        if (!$req->isPost()) {
+            return;
+        }
+
+        $tokens = self::extractCsrfTokens(null, $req);
+        if (!self::validateCsrf($tokens['submitted'])) {
+            http_response_code(403);
+            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+                Response::json(['error' => 'Invalid or expired CSRF token.'], 403);
+            }
+            die('<div style="font-family:sans-serif;padding:24px;color:#b91c1c;background:#fef2f2;border:1px solid #f87171;border-radius:8px;max-width:500px;margin:50px auto;">' .
+                '<h3>403 — Action Forbidden</h3>' .
+                '<p>Your session token was missing or expired. Please refresh the page and try again.</p>' .
+                '<p><a href="javascript:history.back()" style="color:#1e5631;font-weight:bold;">← Go Back</a></p>' .
+                '</div>');
+        }
+    }
+}

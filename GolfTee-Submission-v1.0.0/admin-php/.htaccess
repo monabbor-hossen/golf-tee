@@ -1,0 +1,15 @@
+# InfinityFree compatible .htaccess
+# Note: 'Options' and 'RedirectMatch' directives are blocked by InfinityFree and cause 500 error.
+
+DirectoryIndex index.php
+
+# Protect sensitive files from web access
+<FilesMatch "^(\.env|\.env\.example|\.git.*|.*\.sql)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

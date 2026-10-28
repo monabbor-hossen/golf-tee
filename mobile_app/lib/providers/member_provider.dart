@@ -127,6 +127,10 @@ class MemberNotifier extends Notifier<MemberState> {
   Future<bool> loginWithEmail(String email, [String? password]) async {
     state = state.copyWith(isLoading: true, loginError: null);
     final result = await _api.login(email: email.trim(), password: password);
+    if (password != null) {
+      password = '0' * password.length;
+      password = '';
+    }
     if (result.success && result.member != null) {
       _api.currentMemberId = result.member!.id;
       _api.currentMemberName = result.member!.name;

@@ -152,9 +152,11 @@ class TransactionRepository
     public function search(string $query, int $limit = 3): array
     {
         $term = '%' . Database::escapeLike($query) . '%';
-        return Database::fetchAll(
-            'SELECT * FROM transactions WHERE id LIKE ? OR name LIKE ? ORDER BY txn_date DESC LIMIT ' . (int)$limit,
-            [$term, $term]
-        );
+        $stmt = Database::pdo()->prepare('SELECT * FROM transactions WHERE id LIKE ? OR name LIKE ? ORDER BY txn_date DESC LIMIT ?');
+        $stmt->bindValue(1, $term, \PDO::PARAM_STR);
+        $stmt->bindValue(2, $term, \PDO::PARAM_STR);
+        $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

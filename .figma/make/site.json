@@ -1,0 +1,10 @@
+{
+  "description": "Streamline golf tee-time bookings with a user-friendly mobile app for customers and a professional web dashboard for administrators, enhancing efficiency and user experience.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

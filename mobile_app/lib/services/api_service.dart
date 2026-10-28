@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/booking.dart';
@@ -8,6 +7,7 @@ import '../models/member.dart';
 import '../models/payment_card.dart';
 import '../models/tee_slot.dart';
 import '../models/waitlist_entry.dart';
+import '../config/api_config.dart';
 
 class AuthResult {
   final bool success;
@@ -25,54 +25,30 @@ class ApiService {
   int currentMemberId = 0;
   String currentMemberName = '';
 
-  /// ── Live Production API URL ──────────────────────────────────────────
-  /// When deployed to production, paste your live backend URL here:
-  /// Example: 'https://your-domain.com/admin-php/api/mobile.php'
-  ///
-  /// You can also pass it at build time via:
-  ///   flutter build apk --dart-define=API_URL=https://your-domain.com/admin-php/api/mobile.php
-  static const String liveApiUrl = '';
-
-  static const String _envApiUrl = String.fromEnvironment('API_URL');
+  /// ── Centralized Production API URL ──────────────────────────────────
+  /// Configured via ApiConfig class and compile-time --dart-define=API_URL
+  static const String liveApiUrl = ApiConfig.liveApiUrl;
 
   static String? _resolvedBaseUrl;
 
   static List<String> get _candidateUrls {
-    // 1. If liveApiUrl or --dart-define=API_URL is set, use it as priority
-    if (_envApiUrl.isNotEmpty) {
-      return [_envApiUrl];
-    }
-    if (liveApiUrl.isNotEmpty) {
-      return [liveApiUrl];
-    }
-
-    // 2. Local development fallback candidates
-    if (kIsWeb) {
-      return const [
-        'http://localhost/golf-tee/admin-php/api/mobile.php',
-        'http://127.0.0.1/golf-tee/admin-php/api/mobile.php',
-      ];
-    }
-    try {
-      if (Platform.isAndroid) {
-        return const [
-          'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
-          'http://localhost/golf-tee/admin-php/api/mobile.php',
-          'http://10.0.2.2/golf-tee/admin-php/api/mobile.php',
-        ];
-      }
-    } catch (_) {}
-    return const [
-      'http://192.168.0.100/golf-tee/admin-php/api/mobile.php',
-      'http://localhost/golf-tee/admin-php/api/mobile.php',
-      'http://127.0.0.1/golf-tee/admin-php/api/mobile.php',
-    ];
+    assert(const String.fromEnvironment('API_URL').isNotEmpty || kDebugMode, 'API_URL required for release');
+    return ApiConfig.fallbackUrls;
   }
 
   static String get baseUrl {
     if (_resolvedBaseUrl != null) return _resolvedBaseUrl!;
     return _candidateUrls.first;
   }
+
+  String? authToken;
+
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': 'Bearer ${authToken ?? (currentMemberId > 0 ? "member_token_${currentMemberId}_session" : "")}',
+    if (currentMemberId > 0) 'X-Member-Id': currentMemberId.toString(),
+  };
 
   static const Duration _timeout = Duration(milliseconds: 3000);
 
@@ -85,7 +61,7 @@ class ApiService {
     for (final base in candidates) {
       try {
         final uri = Uri.parse('$base$queryString');
-        final res = await http.get(uri).timeout(_timeout);
+        final res = await http.get(uri, headers: _headers).timeout(_timeout);
         if (res.statusCode == 200) {
           _resolvedBaseUrl = base;
           return res;
@@ -108,7 +84,7 @@ class ApiService {
         final uri = Uri.parse('$base$queryString');
         final res = await http.post(
           uri,
-          headers: {'Content-Type': 'application/json'},
+          headers: _headers,
           body: jsonEncode(body),
         ).timeout(_timeout);
         if (res.statusCode == 200) {
@@ -533,6 +509,9 @@ class ApiService {
           final m = Member.fromJson(data['member'] as Map<String, dynamic>);
           currentMemberId = m.id;
           currentMemberName = m.name;
+          if (data['token'] != null) {
+            authToken = data['token'].toString();
+          }
           return AuthResult(success: true, member: m);
         } else if (data['message'] != null) {
           return AuthResult(
@@ -569,6 +548,9 @@ class ApiService {
           final m = Member.fromJson(data['member'] as Map<String, dynamic>);
           currentMemberId = m.id;
           currentMemberName = m.name;
+          if (data['token'] != null) {
+            authToken = data['token'].toString();
+          }
           return AuthResult(success: true, member: m);
         } else if (data['message'] != null) {
           return AuthResult(

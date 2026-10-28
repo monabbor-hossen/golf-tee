@@ -25,6 +25,16 @@ class SlotFormatter
         return self::format($minutes);
     }
 
+    public static function formatSlot(int $minutes): string
+    {
+        return self::format($minutes);
+    }
+
+    public static function calculateSlotTime(int $minutes): string
+    {
+        return self::format($minutes);
+    }
+
     /**
      * Get human-friendly time-ago representation.
      */

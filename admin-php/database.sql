@@ -1,5 +1,6 @@
+-- DEPRECATED: Use /database/schema.sql instead
 -- Golf Tee Admin Database Schema
--- Run this in phpMyAdmin or via: mysql -u root < database.sql
+-- Run this in phpMyAdmin or via: mysql -u root < database/schema.sql
 
 CREATE DATABASE IF NOT EXISTS golf_admin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE golf_admin;
@@ -11,7 +12,10 @@ CREATE TABLE IF NOT EXISTS members (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(100) NOT NULL,
   email       VARCHAR(150) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) DEFAULT NULL,
+  password    VARCHAR(255) DEFAULT NULL COMMENT 'bcrypt hashed, never plain text',
+  password_hash VARCHAR(255) DEFAULT NULL COMMENT 'bcrypt hashed, never plain text',
+  password_reset_token VARCHAR(100) DEFAULT NULL,
+  password_reset_expires DATETIME DEFAULT NULL,
   phone       VARCHAR(30)  DEFAULT '',
   tier        ENUM('Gold','Silver','Standard') NOT NULL DEFAULT 'Standard',
   hcp         DECIMAL(4,1) DEFAULT 36.0,
@@ -27,6 +31,7 @@ CREATE TABLE IF NOT EXISTS members (
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+CREATE UNIQUE INDEX idx_members_email ON members(email);
 
 -- --------------------------------------------------------
 -- Member Payment Cards
@@ -43,6 +48,21 @@ CREATE TABLE IF NOT EXISTS member_cards (
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+CREATE INDEX idx_member_cards_member_id ON member_cards(member_id);
+
+CREATE TABLE IF NOT EXISTS payment_cards (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  member_id   INT NOT NULL,
+  brand       VARCHAR(50) NOT NULL DEFAULT 'Visa',
+  card_holder VARCHAR(100) DEFAULT '',
+  last4       VARCHAR(4) NOT NULL,
+  exp_month   VARCHAR(2) NOT NULL,
+  exp_year    VARCHAR(4) NOT NULL,
+  is_default  TINYINT(1) NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+CREATE INDEX idx_payment_cards_member_id ON payment_cards(member_id);
 
 -- --------------------------------------------------------
 -- Bookings / Tee Grid
@@ -63,12 +83,20 @@ CREATE TABLE IF NOT EXISTS bookings (
   UNIQUE KEY uq_slot (tee_date, tee_slot, tee),
   KEY idx_date (tee_date),
   KEY idx_member (member_id),
+  KEY idx_booking_member_id (member_id),
+  KEY idx_bookings_member_date (member_id, tee_date),
+  KEY idx_bookings_date_status (tee_date, status),
+  KEY idx_bookings_member_status (member_id, status),
   FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+CREATE INDEX idx_bookings_member_id ON bookings(member_id);
+CREATE INDEX idx_bookings_status ON bookings(status);
+CREATE INDEX idx_bookings_tee_date ON bookings(tee_date);
 
 -- --------------------------------------------------------
 -- Blocked slots
 -- --------------------------------------------------------
+DROP TABLE IF EXISTS blocked_slots;
 CREATE TABLE IF NOT EXISTS blocked_slots (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   tee_date    DATE         NOT NULL,
@@ -93,8 +121,10 @@ CREATE TABLE IF NOT EXISTS waitlist (
   status      ENUM('Waiting','Offered') NOT NULL DEFAULT 'Waiting',
   offered_slot INT          DEFAULT NULL,
   member_id   INT          DEFAULT NULL,
+  KEY idx_waitlist_member_id (member_id),
   FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+CREATE INDEX idx_waitlist_member_id ON waitlist(member_id);
 
 -- --------------------------------------------------------
 -- Events / Tournaments
@@ -110,8 +140,11 @@ CREATE TABLE IF NOT EXISTS events (
   fee         DECIMAL(8,2) DEFAULT 75.00,
   is_open     TINYINT(1)   DEFAULT 1,
   is_blocked  TINYINT(1)   DEFAULT 0,
+  created_by  INT          DEFAULT NULL,
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_events_created_by (created_by),
+  FOREIGN KEY (created_by) REFERENCES staff(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS event_registrations (
@@ -137,10 +170,16 @@ CREATE TABLE IF NOT EXISTS transactions (
   status      ENUM('Paid','Pending','Refunded') NOT NULL DEFAULT 'Paid',
   ref         VARCHAR(100) DEFAULT NULL,
   member_id   INT          DEFAULT NULL,
+  booking_id  INT          DEFAULT NULL,
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
+  KEY idx_transactions_member_id (member_id),
+  KEY idx_transaction_booking_id (booking_id),
+  KEY idx_transactions_booking_id (booking_id),
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL,
+  FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+CREATE INDEX idx_transactions_member_id ON transactions(member_id);
 
 -- --------------------------------------------------------
 -- Activity log
@@ -158,14 +197,18 @@ CREATE TABLE IF NOT EXISTS activity_log (
 -- --------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
   id          INT AUTO_INCREMENT PRIMARY KEY,
+  member_id   INT          DEFAULT NULL,
   title       VARCHAR(150) NOT NULL,
   description TEXT,
   page        VARCHAR(50)  DEFAULT 'Dashboard',
   focus_data  VARCHAR(200) DEFAULT NULL,
   is_read     TINYINT(1)   DEFAULT 0,
   tone        ENUM('forest','wait','danger','sand','gray') DEFAULT 'gray',
-  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_notifications_member_id (member_id),
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+CREATE INDEX idx_notifications_member_id ON notifications(member_id);
 
 -- --------------------------------------------------------
 -- Settings
@@ -184,9 +227,22 @@ CREATE TABLE IF NOT EXISTS staff (
   name        VARCHAR(100) NOT NULL,
   email       VARCHAR(150) NOT NULL UNIQUE,
   role        ENUM('Owner','Manager','Front Desk','Read only') NOT NULL DEFAULT 'Front Desk',
-  password    VARCHAR(255) DEFAULT NULL,
+  password    VARCHAR(255) DEFAULT NULL COMMENT 'bcrypt hashed, never plain text',
+  password_hash VARCHAR(255) DEFAULT NULL COMMENT 'bcrypt hashed, never plain text',
+  password_must_change TINYINT(1) NOT NULL DEFAULT 1,
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- --------------------------------------------------------
+-- Table: login_attempts (IP-based brute-force protection)
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ip VARCHAR(45) NOT NULL,
+  attempt_time INT NOT NULL,
+  INDEX idx_login_attempts_ip_time (ip, attempt_time)
+) ENGINE=InnoDB;
+CREATE INDEX idx_login_attempts_ip_time ON login_attempts(ip, attempt_time);
 
 -- --------------------------------------------------------
 -- Member booking history (view / denormalized for profile)
@@ -236,12 +292,16 @@ INSERT IGNORE INTO settings (`key`,`value`) VALUES
 ('flag_n_daily', '0'),
 ('flag_n_sms', '0');
 
--- Admin staff account (password: admin123 - bcrypt hashed)
-INSERT IGNORE INTO staff (name, email, role, password) VALUES
-('Admin', 'admin@pinevalley.com', 'Owner', '$2y$10$yZWnT0/CxTd3dz6XRZ8kPO35tkfk8q6s2BljeuS6BoAAKdMmGBbsK'),
-('Grace Walsh', 'grace@pinevalley.com', 'Manager', NULL),
-('Tom Becker', 'tom@pinevalley.com', 'Front Desk', NULL),
-('Ava Morales', 'ava@pinevalley.com', 'Front Desk', NULL);
+-- --------------------------------------------------------
+-- Admin staff account (password hashed with bcrypt; password_must_change enforced)
+-- IMPORTANT: After importing this schema, immediately set admin password via
+-- admin-php/set-password.php or the admin panel. Default credentials are disabled for security.
+-- --------------------------------------------------------
+INSERT IGNORE INTO staff (name, email, role, password, password_must_change) VALUES
+('Admin', 'admin@pinevalley.com', 'Owner', '$2y$10$yZWnT0/CxTd3dz6XRZ8kPO35tkfk8q6s2BljeuS6BoAAKdMmGBbsK', 1),
+('Grace Walsh', 'grace@pinevalley.com', 'Manager', NULL, 1),
+('Tom Becker', 'tom@pinevalley.com', 'Front Desk', NULL, 1),
+('Ava Morales', 'ava@pinevalley.com', 'Front Desk', NULL, 1);
 
 -- Seed members
 INSERT IGNORE INTO members (id,name,email,phone,tier,hcp,rounds,last_play,joined,status,spend,next_tee) VALUES
@@ -383,4 +443,19 @@ CREATE TABLE IF NOT EXISTS member_cards (
   INDEX idx_member (member_id),
   FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sample Payment Cards
+INSERT IGNORE INTO member_cards (id, member_id, brand, card_holder, last4, exp_month, exp_year, is_default) VALUES
+(1, 15, 'Visa', 'Monabbor Hossen', '4242', '08', '2028', 1),
+(2, 15, 'Mastercard', 'Monabbor Hossen', '5555', '11', '2029', 0),
+(3, 15, 'Amex', 'Monabbor Hossen', '3782', '05', '2027', 0),
+(4, 1, 'Visa', 'James Carter', '9012', '04', '2028', 1),
+(5, 1, 'Mastercard', 'James Carter', '4410', '10', '2029', 0);
+
+-- Sample Waitlist Entries
+INSERT IGNORE INTO waitlist (id, name, tee_date, tee_slot, party, holes, status, offered_slot, member_id) VALUES
+(1, 'Monabbor Hossen', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 480, 2, 18, 'Offered', 480, 15),
+(2, 'Monabbor Hossen', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 540, 2, 18, 'Waiting', NULL, 15),
+(3, 'Raj Patel', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 520, 4, 18, 'Waiting', NULL, 3);
+
 

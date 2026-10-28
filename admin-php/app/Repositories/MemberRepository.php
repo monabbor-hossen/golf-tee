@@ -7,9 +7,33 @@ use App\Core\Database;
 
 class MemberRepository
 {
-    public function findById(int $id): ?array
+    /**
+     * In-memory cache for frequently accessed member records.
+     * @var array<int, array>
+     */
+    private static array $cache = [];
+
+    public function getById(int $id): ?array
     {
-        return Database::fetchOne('SELECT * FROM members WHERE id = ?', [$id]);
+        return $this->findById($id);
+    }
+
+    public function findById(int $id, ?int $authenticatedStaffId = null, ?int $authenticatedMemberId = null): ?array
+    {
+        // Enforce ownership if authenticated member context is passed
+        if ($authenticatedMemberId !== null && $id !== $authenticatedMemberId && $authenticatedStaffId === null) {
+            return null;
+        }
+
+        if (isset(self::$cache[$id])) {
+            return self::$cache[$id];
+        }
+
+        $member = Database::fetchOne('SELECT * FROM members WHERE id = ?', [$id]);
+        if ($member) {
+            self::$cache[$id] = $member;
+        }
+        return $member;
     }
 
     public function findByName(string $name): ?array
@@ -33,7 +57,11 @@ class MemberRepository
         string $status = 'All',
         string $sort = 'name',
         string $dir = 'ASC',
-        string $spend = 'All'
+        string $spend = 'All',
+        ?int $authenticatedStaffId = null,
+        int $limit = 200,
+        int $offset = 0,
+        ?int $authenticatedMemberId = null
     ): array {
         $allowedSorts = ['name', 'tier', 'hcp', 'rounds', 'spend', 'status'];
         $sortCol = in_array($sort, $allowedSorts, true) ? $sort : 'name';
@@ -41,6 +69,12 @@ class MemberRepository
 
         $where = ['1=1'];
         $params = [];
+
+        // Scoping / ownership filter: non-staff members only query own data
+        if ($authenticatedMemberId !== null && $authenticatedStaffId === null) {
+            $where[] = 'id = ?';
+            $params[] = $authenticatedMemberId;
+        }
 
         if ($query !== '') {
             $where[] = '(name LIKE ? OR email LIKE ? OR phone LIKE ?)';
@@ -74,16 +108,10 @@ class MemberRepository
 
         // Top to bottom and custom sort mappings
         if ($sortCol === 'tier') {
-            // Top to bottom (ASC): Gold -> Silver -> Standard
-            // Bottom to top (DESC): Standard -> Silver -> Gold
             $orderClause = "CASE tier WHEN 'Gold' THEN 1 WHEN 'Silver' THEN 2 WHEN 'Standard' THEN 3 ELSE 4 END {$direction}, spend DESC";
         } elseif ($sortCol === 'status') {
-            // Top to bottom (ASC): Active -> Pending -> Suspended
-            // Bottom to top (DESC): Suspended -> Pending -> Active
             $orderClause = "CASE status WHEN 'Active' THEN 1 WHEN 'Pending' THEN 2 WHEN 'Suspended' THEN 3 ELSE 4 END {$direction}, name ASC";
         } elseif ($sortCol === 'spend') {
-            // Top to bottom (DESC): Highest spend to lowest spend
-            // Bottom to top (ASC): Lowest spend to highest spend
             $orderClause = "spend {$direction}, name ASC";
         } elseif ($sortCol === 'rounds') {
             $orderClause = "rounds {$direction}, name ASC";
@@ -93,8 +121,16 @@ class MemberRepository
             $orderClause = "name {$direction}";
         }
 
-        $sql = 'SELECT * FROM members WHERE ' . implode(' AND ', $where) . " ORDER BY {$orderClause}";
-        return Database::fetchAll($sql, $params);
+        $sql = 'SELECT * FROM members WHERE ' . implode(' AND ', $where) . " ORDER BY {$orderClause} LIMIT ? OFFSET ?";
+        $stmt = Database::pdo()->prepare($sql);
+        $idx = 1;
+        foreach ($params as $p) {
+            $stmt->bindValue($idx++, $p);
+        }
+        $stmt->bindValue($idx++, max(1, min(500, $limit)), \PDO::PARAM_INT);
+        $stmt->bindValue($idx++, max(0, $offset), \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getStatusCounts(): array
@@ -119,7 +155,10 @@ class MemberRepository
 
     public function getPendingMembers(int $limit = 5): array
     {
-        return Database::fetchAll("SELECT * FROM members WHERE status = 'Pending' LIMIT " . (int)$limit);
+        $stmt = Database::pdo()->prepare("SELECT * FROM members WHERE status = 'Pending' LIMIT ?");
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function create(array $data): int
@@ -188,21 +227,56 @@ class MemberRepository
 
     public function updateStatus(int $id, string $status): bool
     {
+        if (strtolower($status) === 'suspended' && !\App\Core\Session::hasRole('manager') && !\App\Core\Session::hasRole('admin') && !\App\Core\Session::hasRole('owner')) {
+            throw new \Exception('Insufficient privileges');
+        }
         return Database::execute('UPDATE members SET status = ? WHERE id = ?', [$status, $id]);
+    }
+
+    public function deleteMember(int $id): bool
+    {
+        unset(self::$cache[$id]);
+        $pdo = Database::pdo();
+        $stmt = $pdo->prepare('DELETE FROM members WHERE id = ?');
+        $stmt->execute([$id]);
+        if ($stmt->rowCount() !== 1) {
+            throw new \Exception('Delete failed');
+        }
+        return true;
     }
 
     public function delete(int $id): bool
     {
-        return Database::execute('DELETE FROM members WHERE id = ?', [$id]);
+        return $this->deleteMember($id);
+    }
+
+    private function buildMemberQuery(array $filters = []): array
+    {
+        $sql = "SELECT * FROM members WHERE 1=1";
+        $params = [];
+        if (!empty($filters['status']) && $filters['status'] !== 'All') {
+            $sql .= " AND status = ?";
+            $params[] = $filters['status'];
+        }
+        if (!empty($filters['tier']) && $filters['tier'] !== 'All') {
+            $sql .= " AND tier = ?";
+            $params[] = $filters['tier'];
+        }
+        if (!empty($filters['query'])) {
+            $sql .= " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+            $term = '%' . Database::escapeLike((string)$filters['query']) . '%';
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+        }
+        return ['sql' => $sql, 'params' => $params];
     }
 
     public function search(string $query, int $limit = 4): array
     {
-        $term = '%' . Database::escapeLike($query) . '%';
-        return Database::fetchAll(
-            "SELECT * FROM members WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? LIMIT " . (int)$limit,
-            [$term, $term, $term]
-        );
+        $built = $this->buildMemberQuery(['query' => $query]);
+        $sql = $built['sql'] . " LIMIT " . max(1, min(100, $limit));
+        return Database::fetchAll($sql, $built['params']);
     }
 
     public function getTopSpenders(string $fromDate, int $limit = 5): array
@@ -214,7 +288,11 @@ class MemberRepository
             LEFT JOIN bookings b ON b.member_id = m.id AND b.tee_date >= ?
             GROUP BY m.id
             ORDER BY spend DESC
-            LIMIT " . (int)$limit;
-        return Database::fetchAll($sql, [$fromDate]);
+            LIMIT ?";
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->bindValue(1, $fromDate, \PDO::PARAM_STR);
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

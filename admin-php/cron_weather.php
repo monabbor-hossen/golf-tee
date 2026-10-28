@@ -12,21 +12,19 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-use App\Services\WeatherService;
+use App\Services\SchedulerService;
 
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    $weatherService = new WeatherService();
-    // Default to true for cron refresh
+    $scheduler = new SchedulerService();
     $force = isset($_GET['force']) ? ((int)$_GET['force'] === 1) : true;
-    $conditions = $weatherService->getConditions(forceRefresh: $force);
+    $result = $scheduler->runWeatherSync(force: $force);
 
     echo json_encode([
         'status' => 'ok',
-        'message' => 'Weather refreshed successfully (1-hour cycle)',
-        'updated_at' => $conditions['updated_at'] ?? date('g:i A'),
-        'conditions' => $conditions,
+        'message' => 'Weather refreshed successfully (1-hour cycle via SchedulerService)',
+        'result' => $result,
     ], JSON_PRETTY_PRINT);
 } catch (\Throwable $e) {
     http_response_code(500);

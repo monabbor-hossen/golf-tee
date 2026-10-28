@@ -38,5 +38,8 @@ $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF'], '.php');
 <div id="toast" class="toast hidden"></div>
 
 <script src="<?= htmlspecialchars($appUrl) ?>/assets/js/app.js"></script>
+<?php if (Config::get('ENABLE_VIBE96_DEMO', 'false') === 'true'): ?>
+<script src="https://vibe96.com/js/v96-demo.js" defer></script>
+<?php endif; ?>
 </body>
 </html>
